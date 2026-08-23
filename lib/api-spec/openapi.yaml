@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: auth
+  - name: applications
+  - name: quizzes
+  - name: sessions
 paths:
   /healthz:
     get:
@@ -24,6 +28,306 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/teacher/login:
+    post:
+      operationId: teacherLogin
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Teacher session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401": { description: Invalid credentials }
+  /auth/moderator/login:
+    post:
+      operationId: moderatorLogin
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Moderator session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "401": { description: Invalid credentials }
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      responses:
+        "204": { description: Signed out }
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      responses:
+        "200":
+          description: Current role
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401": { description: Not authenticated }
+  /applications:
+    post:
+      operationId: createTeacherApplication
+      tags: [applications]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeacherApplicationInput"
+      responses:
+        "201":
+          description: Pending application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApplicationReceipt"
+    get:
+      operationId: listTeacherApplications
+      tags: [applications]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: search, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Applications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TeacherApplication" }
+        "403": { description: Moderator access required }
+  /applications/{id}:
+    get:
+      operationId: getTeacherApplication
+      tags: [applications]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherApplication"
+        "403": { description: Moderator access required }
+  /applications/{id}/decision:
+    post:
+      operationId: decideTeacherApplication
+      tags: [applications]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApplicationDecisionInput"
+      responses:
+        "200":
+          description: Moderation decision and one-time key when approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DecisionResult"
+        "403": { description: Moderator access required }
+  /teacher-registration:
+    post:
+      operationId: registerTeacher
+      tags: [auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeacherRegistrationInput"
+      responses:
+        "201":
+          description: Teacher session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400": { description: Invalid or expired registration key }
+  /teachers:
+    get:
+      operationId: listTeachers
+      tags: [applications]
+      responses:
+        "200":
+          description: Teacher account summary
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TeacherSummary" }
+        "403": { description: Moderator access required }
+  /teachers/{id}/status:
+    post:
+      operationId: updateTeacherStatus
+      tags: [applications]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeacherStatusInput"
+      responses:
+        "200":
+          description: Updated teacher
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherSummary"
+  /quizzes:
+    get:
+      operationId: listQuizzes
+      tags: [quizzes]
+      responses:
+        "200":
+          description: Teacher quizzes
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Quiz" }
+    post:
+      operationId: createQuiz
+      tags: [quizzes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizInput"
+      responses:
+        "201":
+          description: Created quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+  /quizzes/{id}:
+    patch:
+      operationId: updateQuiz
+      tags: [quizzes]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuizInput"
+      responses:
+        "200":
+          description: Updated quiz
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Quiz"
+    delete:
+      operationId: deleteQuiz
+      tags: [quizzes]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
+  /quizzes/{id}/host:
+    post:
+      operationId: hostQuiz
+      tags: [sessions]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "201":
+          description: Hosted session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+  /sessions/{code}:
+    get:
+      operationId: getQuizSession
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Session lobby or quiz state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+    post:
+      operationId: joinQuizSession
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/JoinSessionInput"
+      responses:
+        "201":
+          description: Student joined
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Participant"
+  /sessions/{code}/start:
+    post:
+      operationId: startQuizSession
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Started session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
+  /sessions/{code}/answers:
+    post:
+      operationId: submitAnswer
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AnswerInput"
+      responses:
+        "200":
+          description: Updated participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Participant"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +337,147 @@ components:
           type: string
       required:
         - status
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string }
+        password: { type: string, minLength: 8 }
+    CurrentUser:
+      type: object
+      required: [id, name, email, role]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [STUDENT, TEACHER, MODERATOR] }
+    Session:
+      allOf:
+        - $ref: "#/components/schemas/CurrentUser"
+    TeacherApplicationInput:
+      type: object
+      required: [fullName, email, organization, reason]
+      properties:
+        fullName: { type: string, minLength: 2 }
+        email: { type: string }
+        organization: { type: string, minLength: 2 }
+        reason: { type: string, minLength: 10 }
+        phone: { type: string }
+        role: { type: string }
+    ApplicationReceipt:
+      type: object
+      required: [id, status, submittedAt]
+      properties:
+        id: { type: string }
+        status: { type: string, enum: [PENDING] }
+        submittedAt: { type: string }
+    TeacherApplication:
+      allOf:
+        - $ref: "#/components/schemas/TeacherApplicationInput"
+        - type: object
+          required: [id, status, submittedAt]
+          properties:
+            id: { type: string }
+            status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+            submittedAt: { type: string }
+            reviewedAt: { type: ["string", "null"] }
+    ApplicationDecisionInput:
+      type: object
+      required: [decision]
+      properties:
+        decision: { type: string, enum: [APPROVED, REJECTED] }
+    DecisionResult:
+      type: object
+      required: [application]
+      properties:
+        application: { $ref: "#/components/schemas/TeacherApplication" }
+        registrationKey: { type: ["string", "null"] }
+        expiresAt: { type: ["string", "null"] }
+    TeacherRegistrationInput:
+      type: object
+      required: [registrationKey, name, email, password, passwordConfirmation]
+      properties:
+        registrationKey: { type: string, minLength: 16 }
+        name: { type: string, minLength: 2 }
+        email: { type: string }
+        password: { type: string, minLength: 8 }
+        passwordConfirmation: { type: string, minLength: 8 }
+    TeacherSummary:
+      type: object
+      required: [id, name, email, status]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        organization: { type: string }
+    TeacherStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+    QuizInput:
+      type: object
+      required: [title, description, questions]
+      properties:
+        title: { type: string, minLength: 2 }
+        description: { type: string }
+        questions:
+          type: array
+          items: { $ref: "#/components/schemas/QuestionInput" }
+    QuestionInput:
+      type: object
+      required: [prompt, answers, correctIndex]
+      properties:
+        prompt: { type: string, minLength: 2 }
+        answers:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items: { type: string, minLength: 1 }
+        correctIndex: { type: number, minimum: 0, maximum: 3 }
+    Quiz:
+      allOf:
+        - $ref: "#/components/schemas/QuizInput"
+        - type: object
+          required: [id, questionCount, updatedAt]
+          properties:
+            id: { type: string }
+            questionCount: { type: number }
+            updatedAt: { type: string }
+    QuizSession:
+      type: object
+      required: [code, status, quizTitle, participantCount, participants]
+      properties:
+        code: { type: string }
+        status: { type: string, enum: [LOBBY, LIVE, COMPLETE] }
+        quizTitle: { type: string }
+        participantCount: { type: number }
+        currentQuestion: { type: number }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/Participant" }
+        quiz:
+          $ref: "#/components/schemas/Quiz"
+    JoinSessionInput:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1 }
+    Participant:
+      type: object
+      required: [id, name, answered, score]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        answered: { type: number }
+        score: { type: number }
+        percentage: { type: number }
+    AnswerInput:
+      type: object
+      required: [participantId, questionIndex, answerIndex]
+      properties:
+        participantId: { type: string }
+        questionIndex: { type: number, minimum: 0 }
+        answerIndex: { type: number, minimum: 0, maximum: 3 }
 

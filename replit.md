@@ -1,6 +1,6 @@
-# [Project name]
+# Quickquiz
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Quickquiz is a secure live quiz platform for students, verified teachers, and moderators.
 
 ## Run & Operate
 
@@ -22,23 +22,30 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/quiz-platform` — responsive React/Vite application and role-aware routes.
+- `artifacts/api-server` — Express API with server-side authorization and quiz/session flows.
+- `lib/api-spec/openapi.yaml` — API source of truth; generated client hooks live in `lib/api-client-react`.
+- `lib/db/src/schema/index.ts` — PostgreSQL schema for users, applications, keys, quizzes, and sessions.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Teacher accounts can only be created with a one-time registration key issued after moderator approval.
+- Registration keys are returned only in the moderator approval response, stored as hashes, expire after 72 hours, and are marked used on successful registration.
+- Moderator login requires `MODERATOR_EMAIL` and `MODERATOR_PASSWORD` server environment variables; no moderator signup route exists.
+- Protected actions derive the role from an HTTP-only server cookie and enforce it in the API.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Students join without accounts and play live quizzes. Prospective teachers apply for review, then register only after approval. Teachers manage four-choice quizzes and host live sessions. Moderators review applications and suspend teacher accounts.
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Keep the product intentionally compact: no marketing, pricing, or public teacher/moderator signup surfaces.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Set `MODERATOR_EMAIL` and `MODERATOR_PASSWORD` as server-only environment variables before using the moderator login.
+- After OpenAPI changes, run `pnpm --filter @workspace/api-spec run codegen`.
 
 ## Pointers
 

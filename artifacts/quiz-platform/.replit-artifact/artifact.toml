@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Quiz Platform"
+description = "A secure, simple quiz platform where students join hosted quizzes, teachers create and run sessions after application approval, and moderators verify teacher access."
+version = "1.0.0"
+id = "artifacts/quiz-platform"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18645
+
+[services.development]
+run = "pnpm --filter @workspace/quiz-platform run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/quiz-platform", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/quiz-platform/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18645"
+BASE_PATH = "/"

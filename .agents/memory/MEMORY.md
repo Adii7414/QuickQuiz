@@ -1,0 +1,1 @@
+- [Secure quiz platform](secure-quiz-platform.md) — teacher access is approval-gated with short-lived, single-use hashed registration keys.
