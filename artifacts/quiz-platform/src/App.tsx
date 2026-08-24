@@ -1,4 +1,4 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query';
 import {
   Activity,
@@ -110,6 +110,11 @@ function Button({ children, className = '', variant = 'primary', ...props }: Rea
   return (
     <button
       {...props}
+      style={{
+        ...props.style,
+        color: variant === 'primary' ? '#fffaf0' : variant === 'danger' ? '#fffaf0' : undefined,
+        fontSize: '0.875rem',
+      }}
       className={cx(
         'focus-ring inline-flex min-h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50',
         variant === 'primary' && 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))] shadow-[0_5px_0_hsl(187_77%_23%)] hover:-translate-y-0.5 hover:shadow-[0_7px_0_hsl(187_77%_23%)] active:translate-y-0 active:shadow-[0_3px_0_hsl(187_77%_23%)]',
@@ -118,7 +123,7 @@ function Button({ children, className = '', variant = 'primary', ...props }: Rea
         variant === 'danger' && 'bg-[hsl(var(--destructive))] text-[hsl(var(--destructive-foreground))] hover:brightness-110',
         className,
       )}
-    />
+    >{children}</button>
   );
 }
 
@@ -306,7 +311,7 @@ function DashboardShell({ children, title, subtitle, active = 'Overview', onLogo
   const [open, setOpen] = useState(false);
   const userQuery = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false } });
   const nav = [{ label: 'Overview', icon: LayoutDashboard }, { label: 'Quizzes', icon: BookOpen }, { label: 'Live rooms', icon: Radio }];
-  const accountName = userQuery.data?.name ?? 'Alex Morgan';
+  const accountName = userQuery.data?.name ?? 'Account';
   const accountInitials = accountName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase();
   return <PageFrame><div className="flex min-h-[100dvh]"><aside className={cx('fixed inset-y-0 left-0 z-30 flex w-72 -translate-x-full flex-col bg-[hsl(var(--sidebar))] p-5 text-[hsl(var(--sidebar-foreground))] transition-transform duration-300 lg:static lg:translate-x-0', open && 'translate-x-0')}><div className="flex items-center justify-between"><Logo dark /><button className="focus-ring rounded-lg p-2 lg:hidden" onClick={() => setOpen(false)} data-testid="button-close-menu"><X className="size-5" /></button></div><div className="mt-12 space-y-1">{nav.map(({ label, icon: Icon }) => <button key={label} onClick={() => { setOpen(false); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className={cx('flex w-full items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold transition-colors', active === label ? 'bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-foreground))]' : 'text-[hsl(var(--sidebar-foreground)/.58)] hover:bg-[hsl(var(--sidebar-accent)/.6)] hover:text-[hsl(var(--sidebar-foreground))]')} data-testid={`button-nav-${label.toLowerCase().replace(' ', '-')}`}><Icon className="size-4" />{label}{label === 'Live rooms' && <span className="ml-auto size-2 rounded-full bg-[hsl(var(--accent))]" />}</button>)}</div><div className="mt-auto rounded-2xl border border-[hsl(var(--sidebar-border))] p-4"><p className="text-xs font-bold text-[hsl(var(--sidebar-foreground)/.55)]">Need a hand?</p><p className="mt-1 text-sm leading-5">Read the host guide or talk to support.</p><button onClick={() => { window.location.href = 'mailto:support@quickquiz.school'; }} className="mt-3 inline-flex items-center gap-2 text-xs font-bold text-[hsl(var(--accent))]" data-testid="button-support">Open support <ExternalLink className="size-3" /></button></div><button onClick={onLogout} className="focus-ring mt-4 flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-semibold text-[hsl(var(--sidebar-foreground)/.58)] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-foreground))]" data-testid="button-logout"><LogOut className="size-4" /> Sign out</button></aside>{open && <button aria-label="Close navigation" className="fixed inset-0 z-20 bg-[hsl(var(--foreground)/.2)] lg:hidden" onClick={() => setOpen(false)} data-testid="button-menu-overlay" />}<main className="min-w-0 flex-1"><header className="flex items-center justify-between border-b border-[hsl(var(--border))] bg-[hsl(var(--background)/.82)] px-5 py-4 backdrop-blur sm:px-8"><button className="focus-ring rounded-lg p-2 lg:hidden" onClick={() => setOpen(true)} data-testid="button-open-menu"><Menu className="size-5" /></button><div className="hidden lg:block"><p className="font-display text-lg font-bold">{title}</p><p className="text-xs text-[hsl(var(--muted-foreground))]">{subtitle}</p></div><div className="ml-auto flex items-center gap-3"><span className="hidden text-right sm:block"><span className="block text-sm font-bold">{accountName}</span><span className="block text-xs text-[hsl(var(--muted-foreground))]">Verified account</span></span><span className="grid size-9 place-items-center rounded-full bg-[hsl(var(--secondary))] font-display font-bold text-[hsl(var(--primary))]" data-testid="text-account-initials">{accountInitials}</span></div></header><div className="p-5 sm:p-8">{children}</div></main></div></PageFrame>;
 }
@@ -397,9 +402,23 @@ function RegistrationKeyDialog({ value, onClose }: { value: string; onClose: () 
 
 function NotFound() { return <PageFrame><TopNav /><main className="mx-auto max-w-lg px-5 py-20"><div className="surface rounded-2xl p-8 text-center"><XCircle className="mx-auto size-9 text-[hsl(var(--accent))]" /><h1 className="mt-5 font-display text-3xl font-bold">This room is somewhere else.</h1><p className="mt-3 text-sm text-[hsl(var(--muted-foreground))]">The page you requested does not exist.</p><Link href="/" className="focus-ring mt-7 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--secondary))] px-4 py-3 text-sm font-bold" data-testid="link-not-found-home"><ArrowLeft className="size-4" /> Back home</Link></div></main></PageFrame>; }
 
+function RoleGuard({ role, children }: { role: 'TEACHER' | 'MODERATOR'; children: ReactNode }) {
+  const [, setLocation] = useLocation();
+  const userQuery = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false, refetchOnMount: 'always' } });
+  useEffect(() => {
+    if (userQuery.isError || (userQuery.data && userQuery.data.role !== role)) {
+      setLocation(role === 'MODERATOR' ? '/moderator/login' : '/teacher/login');
+    }
+  }, [role, setLocation, userQuery.data, userQuery.isError]);
+  if (userQuery.isLoading || !userQuery.data || userQuery.data.role !== role) {
+    return <PageFrame><main className="mx-auto max-w-2xl px-5 py-16"><LoadingState label="Checking your access" /></main></PageFrame>;
+  }
+  return <>{children}</>;
+}
+
 function Router() {
   const [location] = useLocation();
-  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/play/:code" component={PlayPage} /><Route path="/apply" component={ApplyPage} /><Route path="/teacher/login" component={() => <LoginPage kind="teacher" />} /><Route path="/teacher/register" component={RegisterPage} /><Route path="/teacher" component={TeacherDashboard} /><Route path="/moderator/login" component={() => <LoginPage kind="moderator" />} /><Route path="/moderator" component={ModeratorDashboard} /><Route component={NotFound} /></Switch></ErrorBoundary>;
+  return <ErrorBoundary resetKey={location}><Switch><Route path="/" component={Home} /><Route path="/play/:code" component={PlayPage} /><Route path="/apply" component={ApplyPage} /><Route path="/teacher/login" component={() => <LoginPage kind="teacher" />} /><Route path="/teacher/register" component={RegisterPage} /><Route path="/teacher"><RoleGuard role="TEACHER"><TeacherDashboard /></RoleGuard></Route><Route path="/moderator/login" component={() => <LoginPage kind="moderator" />} /><Route path="/moderator"><RoleGuard role="MODERATOR"><ModeratorDashboard /></RoleGuard></Route><Route component={NotFound} /></Switch></ErrorBoundary>;
 }
 
 function App() {
