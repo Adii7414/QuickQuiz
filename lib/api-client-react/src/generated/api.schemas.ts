@@ -135,6 +135,100 @@ export interface TeacherStatusInput {
   status: TeacherStatusInputStatus;
 }
 
+export interface RegistrationKeyDetails {
+  registrationKey: string;
+  expiresAt: string;
+  /** @nullable */
+  usedAt: string | null;
+}
+
+export interface ModerationSessionParticipant {
+  id: string;
+  name: string;
+  answered: number;
+  score: number;
+  percentage: number;
+}
+
+export type ModerationSessionStatus = typeof ModerationSessionStatus[keyof typeof ModerationSessionStatus];
+
+
+export const ModerationSessionStatus = {
+  LOBBY: 'LOBBY',
+  LIVE: 'LIVE',
+  PAUSED: 'PAUSED',
+  COMPLETE: 'COMPLETE',
+} as const;
+
+export interface ModerationSession {
+  code: string;
+  quizTitle: string;
+  teacherName: string;
+  teacherEmail: string;
+  status: ModerationSessionStatus;
+  participantCount: number;
+  currentQuestion: number;
+  questionCount: number;
+  createdAt: string;
+  joinFrozen: boolean;
+  participants: ModerationSessionParticipant[];
+}
+
+export type ModerationActionInputAction = typeof ModerationActionInputAction[keyof typeof ModerationActionInputAction];
+
+
+export const ModerationActionInputAction = {
+  END: 'END',
+  PAUSE: 'PAUSE',
+  RESUME: 'RESUME',
+  FREEZE_JOINS: 'FREEZE_JOINS',
+  UNFREEZE_JOINS: 'UNFREEZE_JOINS',
+  REMOVE_PARTICIPANT: 'REMOVE_PARTICIPANT',
+} as const;
+
+export interface ModerationActionInput {
+  action: ModerationActionInputAction;
+  participantId?: string;
+}
+
+export type ModerationUserRole = typeof ModerationUserRole[keyof typeof ModerationUserRole];
+
+
+export const ModerationUserRole = {
+  TEACHER: 'TEACHER',
+  STUDENT: 'STUDENT',
+  MODERATOR: 'MODERATOR',
+} as const;
+
+export type ModerationUserStatus = typeof ModerationUserStatus[keyof typeof ModerationUserStatus];
+
+
+export const ModerationUserStatus = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export interface ModerationUser {
+  id: string;
+  name: string;
+  email: string;
+  role: ModerationUserRole;
+  status: ModerationUserStatus;
+  createdAt: string;
+}
+
+export type ModerationUserStatusInputStatus = typeof ModerationUserStatusInputStatus[keyof typeof ModerationUserStatusInputStatus];
+
+
+export const ModerationUserStatusInputStatus = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+} as const;
+
+export interface ModerationUserStatusInput {
+  status: ModerationUserStatusInputStatus;
+}
+
 export interface QuestionInput {
   /** @minLength 2 */
   prompt: string;
@@ -176,6 +270,7 @@ export type QuizSessionStatus = typeof QuizSessionStatus[keyof typeof QuizSessio
 export const QuizSessionStatus = {
   LOBBY: 'LOBBY',
   LIVE: 'LIVE',
+  PAUSED: 'PAUSED',
   COMPLETE: 'COMPLETE',
 } as const;
 
@@ -258,5 +353,10 @@ export interface QuizResults {
 export type ListTeacherApplicationsParams = {
 status?: string;
 search?: string;
+};
+
+export type ListModeratorUsersParams = {
+search?: string;
+role?: string;
 };
 

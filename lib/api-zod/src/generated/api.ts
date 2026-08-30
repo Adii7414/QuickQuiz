@@ -230,6 +230,103 @@ export const UpdateTeacherStatusResponse = zod.object({
 })
 
 
+export const GetRegistrationKeyParams = zod.object({
+  "applicationId": zod.coerce.string()
+})
+
+export const GetRegistrationKeyResponse = zod.object({
+  "registrationKey": zod.string(),
+  "expiresAt": zod.string(),
+  "usedAt": zod.string().nullable()
+})
+
+
+export const ListModeratorSessionsResponseItem = zod.object({
+  "code": zod.string(),
+  "quizTitle": zod.string(),
+  "teacherName": zod.string(),
+  "teacherEmail": zod.string(),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
+  "participantCount": zod.number(),
+  "currentQuestion": zod.number(),
+  "questionCount": zod.number(),
+  "createdAt": zod.string(),
+  "joinFrozen": zod.boolean(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "answered": zod.number(),
+  "score": zod.number(),
+  "percentage": zod.number()
+}))
+})
+export const ListModeratorSessionsResponse = zod.array(ListModeratorSessionsResponseItem)
+
+
+export const ModerateQuizSessionParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const ModerateQuizSessionBody = zod.object({
+  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT']),
+  "participantId": zod.string().optional()
+})
+
+export const ModerateQuizSessionResponse = zod.object({
+  "code": zod.string(),
+  "quizTitle": zod.string(),
+  "teacherName": zod.string(),
+  "teacherEmail": zod.string(),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
+  "participantCount": zod.number(),
+  "currentQuestion": zod.number(),
+  "questionCount": zod.number(),
+  "createdAt": zod.string(),
+  "joinFrozen": zod.boolean(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "answered": zod.number(),
+  "score": zod.number(),
+  "percentage": zod.number()
+}))
+})
+
+
+export const ListModeratorUsersQueryParams = zod.object({
+  "search": zod.coerce.string().optional(),
+  "role": zod.coerce.string().optional()
+})
+
+export const ListModeratorUsersResponseItem = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['TEACHER', 'STUDENT', 'MODERATOR']),
+  "status": zod.enum(['ACTIVE', 'SUSPENDED']),
+  "createdAt": zod.string()
+})
+export const ListModeratorUsersResponse = zod.array(ListModeratorUsersResponseItem)
+
+
+export const UpdateModeratorUserStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const UpdateModeratorUserStatusBody = zod.object({
+  "status": zod.enum(['ACTIVE', 'SUSPENDED'])
+})
+
+export const UpdateModeratorUserStatusResponse = zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "email": zod.string(),
+  "role": zod.enum(['TEACHER', 'STUDENT', 'MODERATOR']),
+  "status": zod.enum(['ACTIVE', 'SUSPENDED']),
+  "createdAt": zod.string()
+})
+
+
 export const listQuizzesResponseOneTitleMin = 2;
 
 export const listQuizzesResponseOneTimeLimitSecondsMin = 0;
@@ -414,7 +511,7 @@ export const hostQuizResponseQuizOneQuestionsItemCorrectIndexMax = 3;
 
 export const HostQuizResponse = zod.object({
   "code": zod.string(),
-  "status": zod.enum(['LOBBY', 'LIVE', 'COMPLETE']),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
@@ -469,7 +566,7 @@ export const getQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax = 3;
 
 export const GetQuizSessionResponse = zod.object({
   "code": zod.string(),
-  "status": zod.enum(['LOBBY', 'LIVE', 'COMPLETE']),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
@@ -544,7 +641,7 @@ export const startQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax = 3;
 
 export const StartQuizSessionResponse = zod.object({
   "code": zod.string(),
-  "status": zod.enum(['LOBBY', 'LIVE', 'COMPLETE']),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
@@ -599,7 +696,7 @@ export const advanceQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax = 3;
 
 export const AdvanceQuizSessionResponse = zod.object({
   "code": zod.string(),
-  "status": zod.enum(['LOBBY', 'LIVE', 'COMPLETE']),
+  "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),

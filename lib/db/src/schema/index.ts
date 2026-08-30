@@ -27,6 +27,7 @@ export const registrationKeys = pgTable("teacher_registration_keys", {
   id: text("id").primaryKey(),
   applicationId: text("application_id").notNull().unique(),
   keyHash: text("key_hash").notNull().unique(),
+  encryptedKey: text("encrypted_key"),
   expiresAt: timestamp("expires_at").notNull(),
   usedAt: timestamp("used_at"),
 });
@@ -49,6 +50,7 @@ export const sessions = pgTable("quiz_sessions", {
   status: text("status").notNull().default("LOBBY"),
   currentQuestion: integer("current_question").default(0),
   questionStartedAt: timestamp("question_started_at"),
+  joinFrozen: boolean("join_frozen").notNull().default(false),
   participants: jsonb("participants").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

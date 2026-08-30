@@ -198,6 +198,94 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/TeacherSummary"
+  /registration-keys/{applicationId}:
+    get:
+      operationId: getRegistrationKey
+      tags: [applications]
+      parameters:
+        - { name: applicationId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Registration key for an approved teacher application
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RegistrationKeyDetails"
+        "403": { description: Moderator access required }
+        "404": { description: Registration key not found }
+  /moderator/sessions:
+    get:
+      operationId: listModeratorSessions
+      tags: [moderation]
+      responses:
+        "200":
+          description: Active quiz rooms visible to moderators
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ModerationSession" }
+        "403": { description: Moderator access required }
+  /moderator/sessions/{code}/action:
+    post:
+      operationId: moderateQuizSession
+      tags: [moderation]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModerationActionInput"
+      responses:
+        "200":
+          description: Updated moderated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModerationSession"
+        "400": { description: Invalid moderation action }
+        "403": { description: Moderator access required }
+        "404": { description: Session or participant not found }
+  /moderator/users:
+    get:
+      operationId: listModeratorUsers
+      tags: [moderation]
+      parameters:
+        - { name: search, in: query, schema: { type: string } }
+        - { name: role, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Searchable account directory
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ModerationUser" }
+        "403": { description: Moderator access required }
+  /moderator/users/{id}/status:
+    post:
+      operationId: updateModeratorUserStatus
+      tags: [moderation]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ModerationUserStatusInput"
+      responses:
+        "200":
+          description: Updated account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModerationUser"
+        "400": { description: Invalid account status }
+        "403": { description: Moderator access required }
+        "404": { description: Account not found }
   /quizzes:
     get:
       operationId: listQuizzes
@@ -442,6 +530,60 @@ components:
       required: [status]
       properties:
         status: { type: string, enum: [ACTIVE, SUSPENDED] }
+    RegistrationKeyDetails:
+      type: object
+      required: [registrationKey, expiresAt, usedAt]
+      properties:
+        registrationKey: { type: string }
+        expiresAt: { type: string }
+        usedAt: { type: ["string", "null"] }
+    ModerationSessionParticipant:
+      type: object
+      required: [id, name, answered, score, percentage]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        answered: { type: number }
+        score: { type: number }
+        percentage: { type: number }
+    ModerationSession:
+      type: object
+      required: [code, quizTitle, teacherName, teacherEmail, status, participantCount, currentQuestion, questionCount, createdAt, joinFrozen, participants]
+      properties:
+        code: { type: string }
+        quizTitle: { type: string }
+        teacherName: { type: string }
+        teacherEmail: { type: string }
+        status: { type: string, enum: [LOBBY, LIVE, PAUSED, COMPLETE] }
+        participantCount: { type: number }
+        currentQuestion: { type: number }
+        questionCount: { type: number }
+        createdAt: { type: string }
+        joinFrozen: { type: boolean }
+        participants:
+          type: array
+          items: { $ref: "#/components/schemas/ModerationSessionParticipant" }
+    ModerationActionInput:
+      type: object
+      required: [action]
+      properties:
+        action: { type: string, enum: [END, PAUSE, RESUME, FREEZE_JOINS, UNFREEZE_JOINS, REMOVE_PARTICIPANT] }
+        participantId: { type: string }
+    ModerationUser:
+      type: object
+      required: [id, name, email, role, status, createdAt]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        role: { type: string, enum: [TEACHER, STUDENT, MODERATOR] }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
+        createdAt: { type: string }
+    ModerationUserStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
     QuizInput:
       type: object
       required: [title, description, questions]
@@ -477,7 +619,7 @@ components:
       required: [code, status, quizTitle, participantCount, participants]
       properties:
         code: { type: string }
-        status: { type: string, enum: [LOBBY, LIVE, COMPLETE] }
+        status: { type: string, enum: [LOBBY, LIVE, PAUSED, COMPLETE] }
         quizTitle: { type: string }
         participantCount: { type: number }
         currentQuestion: { type: number }

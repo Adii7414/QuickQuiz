@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type QuizSessionStatus = typeof QuizSessionStatus[keyof typeof QuizSessionStatus];
+export type ModerationSessionStatus = typeof ModerationSessionStatus[keyof typeof ModerationSessionStatus];
 
 
-export const QuizSessionStatus = {
+export const ModerationSessionStatus = {
   LOBBY: 'LOBBY',
   LIVE: 'LIVE',
   PAUSED: 'PAUSED',

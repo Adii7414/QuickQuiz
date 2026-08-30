@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, ilike, isNull, or } from "drizzle-orm";
+import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
+import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { db, applications, quizzes, registrationKeys, sessions, users } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -15,6 +15,28 @@ function verify(value: string, stored: string) {
   const [salt, digest] = stored.split(":");
   if (!salt || !digest) return false;
   return timingSafeEqual(scryptSync(value, salt, 64), Buffer.from(digest, "hex"));
+}
+function secretKey() {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) throw new Error("SESSION_SECRET is required for protected key storage.");
+  return createHash("sha256").update(secret).digest();
+}
+function encryptKey(value: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", secretKey(), iv);
+  const encrypted = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]);
+  return `${iv.toString("base64url")}.${cipher.getAuthTag().toString("base64url")}.${encrypted.toString("base64url")}`;
+}
+function decryptKey(value: string) {
+  const [ivValue, tagValue, encryptedValue] = value.split(".");
+  if (!ivValue || !tagValue || !encryptedValue) return null;
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", secretKey(), Buffer.from(ivValue, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagValue, "base64url"));
+    return Buffer.concat([decipher.update(Buffer.from(encryptedValue, "base64url")), decipher.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
 }
 function session(req: Request) {
   const token = req.cookies?.quiz_session;
@@ -52,7 +74,28 @@ function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.
         return { answered: responses.length, correct: responses.filter((answer) => answer === question.correctIndex).length };
       })
     : undefined;
-  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
+  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
+}
+async function publicModerationSession(row: typeof sessions.$inferSelect) {
+  const [quiz, teacher] = await Promise.all([
+    db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1),
+    db.select().from(users).where(eq(users.id, row.teacherId)).limit(1),
+  ]);
+  const questionCount = quiz[0] ? (quiz[0].questions as unknown[]).length : 0;
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  return {
+    code: row.code,
+    quizTitle: quiz[0]?.title ?? "Quiz",
+    teacherName: teacher[0]?.name ?? "Unknown teacher",
+    teacherEmail: teacher[0]?.email ?? "",
+    status: row.status,
+    participantCount: people.length,
+    currentQuestion: row.currentQuestion ?? 0,
+    questionCount,
+    createdAt: row.createdAt.toISOString(),
+    joinFrozen: row.joinFrozen,
+    participants: people.map((person) => ({ ...person, percentage: questionCount ? Math.round((person.score / questionCount) * 100) : 0 })),
+  };
 }
 
 router.post("/auth/teacher/login", async (req, res) => {
@@ -118,8 +161,23 @@ router.post("/applications/:id/decision", requireRole("MODERATOR"), async (req, 
   if (decision === "REJECTED") return res.json({ application: publicApplication(updated), registrationKey: null, expiresAt: null });
   const raw = `TCH-${randomBytes(18).toString("base64url")}`;
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 72);
-  await db.insert(registrationKeys).values({ id: randomUUID(), applicationId: row.id, keyHash: hash(raw), expiresAt: expires });
+  const existingKey = (await db.select().from(registrationKeys).where(eq(registrationKeys.applicationId, row.id)).limit(1))[0];
+  if (existingKey) {
+    const existingRaw = existingKey.encryptedKey ? decryptKey(existingKey.encryptedKey) : null;
+    if (existingRaw) return res.json({ application: publicApplication(updated), registrationKey: existingRaw, expiresAt: existingKey.expiresAt.toISOString() });
+    await db.update(registrationKeys).set({ keyHash: hash(raw), encryptedKey: encryptKey(raw), expiresAt: expires, usedAt: null }).where(eq(registrationKeys.id, existingKey.id));
+  } else {
+    await db.insert(registrationKeys).values({ id: randomUUID(), applicationId: row.id, keyHash: hash(raw), encryptedKey: encryptKey(raw), expiresAt: expires });
+  }
   return res.json({ application: publicApplication(updated), registrationKey: raw, expiresAt: expires.toISOString() });
+});
+router.get("/registration-keys/:applicationId", requireRole("MODERATOR"), async (req, res) => {
+  const applicationId = String(req.params.applicationId);
+  const row = (await db.select().from(registrationKeys).where(eq(registrationKeys.applicationId, applicationId)).limit(1))[0];
+  if (!row || !row.encryptedKey) return res.status(404).json({ error: "Registration key not found." });
+  const registrationKey = decryptKey(row.encryptedKey);
+  if (!registrationKey) return res.status(500).json({ error: "Registration key could not be recovered." });
+  return res.json({ registrationKey, expiresAt: row.expiresAt.toISOString(), usedAt: row.usedAt?.toISOString() ?? null });
 });
 router.post("/teacher-registration", async (req, res) => {
   const { registrationKey, name, email, password, passwordConfirmation } = req.body ?? {};
@@ -143,6 +201,56 @@ router.post("/teachers/:id/status", requireRole("MODERATOR"), async (req, res) =
   const id = String(req.params.id);
   const row = (await db.update(users).set({ status }).where(and(eq(users.id, id), eq(users.role, "TEACHER"))).returning())[0];
   return row ? res.json({ id: row.id, name: row.name, email: row.email, status: row.status, organization: "" }) : res.status(404).json({ error: "Teacher not found" });
+});
+router.get("/moderator/users", requireRole("MODERATOR"), async (req, res) => {
+  const search = String(req.query.search ?? "").trim();
+  const role = String(req.query.role ?? "").toUpperCase();
+  const filters = [];
+  if (search) filters.push(or(ilike(users.name, `%${search}%`), ilike(users.email, `%${search}%`)));
+  if (["TEACHER", "STUDENT", "MODERATOR"].includes(role)) filters.push(eq(users.role, role));
+  const rows = await db.select().from(users).where(filters.length ? and(...filters) : undefined).orderBy(desc(users.createdAt));
+  return res.json(rows.map((row) => ({ id: row.id, name: row.name, email: row.email, role: row.role, status: row.status, createdAt: row.createdAt.toISOString() })));
+});
+router.post("/moderator/users/:id/status", requireRole("MODERATOR"), async (req, res) => {
+  const status = req.body?.status;
+  if (!["ACTIVE", "SUSPENDED"].includes(status)) return res.status(400).json({ error: "Invalid account status" });
+  const id = String(req.params.id);
+  const current = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0];
+  if (!current || current.role === "MODERATOR") return res.status(404).json({ error: "Account not found" });
+  const row = (await db.update(users).set({ status }).where(eq(users.id, id)).returning())[0];
+  return res.json({ id: row.id, name: row.name, email: row.email, role: row.role, status: row.status, createdAt: row.createdAt.toISOString() });
+});
+router.get("/moderator/sessions", requireRole("MODERATOR"), async (_req, res) => {
+  const rows = await db.select().from(sessions).where(inArray(sessions.status, ["LOBBY", "LIVE", "PAUSED"])).orderBy(desc(sessions.createdAt));
+  return res.json(await Promise.all(rows.map(publicModerationSession)));
+});
+router.post("/moderator/sessions/:code/action", requireRole("MODERATOR"), async (req, res) => {
+  const code = String(req.params.code).toUpperCase();
+  const action = String(req.body?.action ?? "");
+  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT"];
+  if (!allowed.includes(action)) return res.status(400).json({ error: "Invalid moderation action" });
+  const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
+  if (!row) return res.status(404).json({ error: "Session not found" });
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  let update: Partial<typeof sessions.$inferInsert> = {};
+  if (action === "END") update = { status: "COMPLETE", questionStartedAt: null };
+  if (action === "PAUSE") {
+    if (row.status !== "LIVE") return res.status(400).json({ error: "Only a live session can be paused." });
+    update = { status: "PAUSED", questionStartedAt: null };
+  }
+  if (action === "RESUME") {
+    if (row.status !== "PAUSED") return res.status(400).json({ error: "Only a paused session can be resumed." });
+    update = { status: "LIVE", questionStartedAt: new Date() };
+  }
+  if (action === "FREEZE_JOINS") update = { joinFrozen: true };
+  if (action === "UNFREEZE_JOINS") update = { joinFrozen: false };
+  if (action === "REMOVE_PARTICIPANT") {
+    const participantId = String(req.body?.participantId ?? "");
+    if (!participantId || !people.some((person) => person.id === participantId)) return res.status(404).json({ error: "Participant not found" });
+    update = { participants: people.filter((person) => person.id !== participantId) };
+  }
+  const updated = (await db.update(sessions).set(update).where(eq(sessions.code, code)).returning())[0];
+  return res.json(await publicModerationSession(updated));
 });
 
 router.get("/quizzes", requireRole("TEACHER"), async (req, res) => {
@@ -192,7 +300,7 @@ router.get("/sessions/:code", async (req, res) => {
 router.post("/sessions/:code", async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
-  if (!row || row.status !== "LOBBY") return res.status(400).json({ error: "This quiz is no longer accepting players." });
+  if (!row || row.status !== "LOBBY" || row.joinFrozen) return res.status(400).json({ error: "This quiz is no longer accepting players." });
   const name = String(req.body?.name ?? "").trim();
   if (!name) return res.status(400).json({ error: "Enter your name." });
   const participant = { id: randomUUID(), name, answered: 0, score: 0 };
@@ -216,6 +324,7 @@ router.post("/sessions/:code/advance", requireRole("TEACHER"), async (req, res) 
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
   if (!quiz) return res.status(404).json({ error: "Quiz not found" });
   if (row.status === "LOBBY") return res.status(400).json({ error: "Start the quiz before advancing." });
+  if (row.status === "PAUSED") return res.status(400).json({ error: "Resume the quiz before advancing." });
   if (row.status === "COMPLETE") return res.json(publicSession(row, quiz));
   const lastQuestion = (row.currentQuestion ?? 0) >= (quiz.questions as unknown[]).length - 1;
   const updated = (await db.update(sessions).set(lastQuestion ? { status: "COMPLETE", questionStartedAt: null } : { currentQuestion: (row.currentQuestion ?? 0) + 1, questionStartedAt: new Date() }).where(eq(sessions.code, code)).returning())[0];

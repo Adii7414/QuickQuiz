@@ -27,13 +27,19 @@ import type {
   DecisionResult,
   HealthStatus,
   JoinSessionInput,
+  ListModeratorUsersParams,
   ListTeacherApplicationsParams,
   LoginInput,
+  ModerationActionInput,
+  ModerationSession,
+  ModerationUser,
+  ModerationUserStatusInput,
   Participant,
   Quiz,
   QuizInput,
   QuizResults,
   QuizSession,
+  RegistrationKeyDetails,
   Session,
   TeacherApplication,
   TeacherApplicationInput,
@@ -893,6 +899,358 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateTeacherStatusMutationOptions(options));
+    }
+
+export const getGetRegistrationKeyUrl = (applicationId: string,) => {
+
+
+
+
+  return `/api/registration-keys/${applicationId}`
+}
+
+export const getRegistrationKey = async (applicationId: string, options?: Parameters<typeof customFetch>[1]): Promise<RegistrationKeyDetails> => {
+
+  return customFetch<RegistrationKeyDetails>(getGetRegistrationKeyUrl(applicationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetRegistrationKeyQueryKey = (applicationId: string,) => {
+    return [
+    `/api/registration-keys/${applicationId}`
+    ] as const;
+    }
+
+
+export const getGetRegistrationKeyQueryOptions = <TData = Awaited<ReturnType<typeof getRegistrationKey>>, TError = ErrorType<void>>(applicationId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRegistrationKey>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetRegistrationKeyQueryKey(applicationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getRegistrationKey>>> = ({ signal }) => getRegistrationKey(applicationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: applicationId !== null && applicationId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getRegistrationKey>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetRegistrationKeyQueryResult = NonNullable<Awaited<ReturnType<typeof getRegistrationKey>>>
+export type GetRegistrationKeyQueryError = ErrorType<void>
+
+
+
+export function useGetRegistrationKey<TData = Awaited<ReturnType<typeof getRegistrationKey>>, TError = ErrorType<void>>(
+ applicationId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getRegistrationKey>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetRegistrationKeyQueryOptions(applicationId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListModeratorSessionsUrl = () => {
+
+
+
+
+  return `/api/moderator/sessions`
+}
+
+export const listModeratorSessions = async ( options?: Parameters<typeof customFetch>[1]): Promise<ModerationSession[]> => {
+
+  return customFetch<ModerationSession[]>(getListModeratorSessionsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListModeratorSessionsQueryKey = () => {
+    return [
+    `/api/moderator/sessions`
+    ] as const;
+    }
+
+
+export const getListModeratorSessionsQueryOptions = <TData = Awaited<ReturnType<typeof listModeratorSessions>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModeratorSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListModeratorSessionsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listModeratorSessions>>> = ({ signal }) => listModeratorSessions({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listModeratorSessions>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListModeratorSessionsQueryResult = NonNullable<Awaited<ReturnType<typeof listModeratorSessions>>>
+export type ListModeratorSessionsQueryError = ErrorType<void>
+
+
+
+export function useListModeratorSessions<TData = Awaited<ReturnType<typeof listModeratorSessions>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModeratorSessions>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListModeratorSessionsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getModerateQuizSessionUrl = (code: string,) => {
+
+
+
+
+  return `/api/moderator/sessions/${code}/action`
+}
+
+export const moderateQuizSession = async (code: string,
+    moderationActionInput: ModerationActionInput, options?: Parameters<typeof customFetch>[1]): Promise<ModerationSession> => {
+
+  return customFetch<ModerationSession>(getModerateQuizSessionUrl(code),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(moderationActionInput)
+  }
+);}
+
+
+
+
+
+export const getModerateQuizSessionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateQuizSession>>, TError,{code: string;data: BodyType<ModerationActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof moderateQuizSession>>, TError,{code: string;data: BodyType<ModerationActionInput>}, TContext> => {
+
+const mutationKey = ['moderateQuizSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof moderateQuizSession>>, {code: string;data: BodyType<ModerationActionInput>}> = (props) => {
+          const {code,data} = props ?? {};
+
+          return  moderateQuizSession(code,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ModerateQuizSessionMutationResult = NonNullable<Awaited<ReturnType<typeof moderateQuizSession>>>
+    export type ModerateQuizSessionMutationBody = BodyType<ModerationActionInput>
+    export type ModerateQuizSessionMutationError = ErrorType<void>
+
+    export const useModerateQuizSession = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof moderateQuizSession>>, TError,{code: string;data: BodyType<ModerationActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof moderateQuizSession>>,
+        TError,
+        {code: string;data: BodyType<ModerationActionInput>},
+        TContext
+      > => {
+      return useMutation(getModerateQuizSessionMutationOptions(options));
+    }
+
+export const getListModeratorUsersUrl = (params?: ListModeratorUsersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/moderator/users?${stringifiedParams}` : `/api/moderator/users`
+}
+
+export const listModeratorUsers = async (params?: ListModeratorUsersParams, options?: Parameters<typeof customFetch>[1]): Promise<ModerationUser[]> => {
+
+  return customFetch<ModerationUser[]>(getListModeratorUsersUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListModeratorUsersQueryKey = (params?: ListModeratorUsersParams,) => {
+    return [
+    `/api/moderator/users`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListModeratorUsersQueryOptions = <TData = Awaited<ReturnType<typeof listModeratorUsers>>, TError = ErrorType<void>>(params?: ListModeratorUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModeratorUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListModeratorUsersQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listModeratorUsers>>> = ({ signal }) => listModeratorUsers(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listModeratorUsers>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListModeratorUsersQueryResult = NonNullable<Awaited<ReturnType<typeof listModeratorUsers>>>
+export type ListModeratorUsersQueryError = ErrorType<void>
+
+
+
+export function useListModeratorUsers<TData = Awaited<ReturnType<typeof listModeratorUsers>>, TError = ErrorType<void>>(
+ params?: ListModeratorUsersParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModeratorUsers>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListModeratorUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getUpdateModeratorUserStatusUrl = (id: string,) => {
+
+
+
+
+  return `/api/moderator/users/${id}/status`
+}
+
+export const updateModeratorUserStatus = async (id: string,
+    moderationUserStatusInput: ModerationUserStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<ModerationUser> => {
+
+  return customFetch<ModerationUser>(getUpdateModeratorUserStatusUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(moderationUserStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateModeratorUserStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateModeratorUserStatus>>, TError,{id: string;data: BodyType<ModerationUserStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateModeratorUserStatus>>, TError,{id: string;data: BodyType<ModerationUserStatusInput>}, TContext> => {
+
+const mutationKey = ['updateModeratorUserStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateModeratorUserStatus>>, {id: string;data: BodyType<ModerationUserStatusInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateModeratorUserStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateModeratorUserStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateModeratorUserStatus>>>
+    export type UpdateModeratorUserStatusMutationBody = BodyType<ModerationUserStatusInput>
+    export type UpdateModeratorUserStatusMutationError = ErrorType<void>
+
+    export const useUpdateModeratorUserStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateModeratorUserStatus>>, TError,{id: string;data: BodyType<ModerationUserStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateModeratorUserStatus>>,
+        TError,
+        {id: string;data: BodyType<ModerationUserStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateModeratorUserStatusMutationOptions(options));
     }
 
 export const getListQuizzesUrl = () => {
