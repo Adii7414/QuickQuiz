@@ -252,6 +252,16 @@ export const ListModeratorSessionsResponseItem = zod.object({
   "questionCount": zod.number(),
   "createdAt": zod.string(),
   "joinFrozen": zod.boolean(),
+  "liveQuestion": zod.object({
+  "index": zod.number(),
+  "prompt": zod.string(),
+  "answers": zod.array(zod.string()),
+  "correctIndex": zod.number()
+}).nullable(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -283,6 +293,16 @@ export const ModerateQuizSessionResponse = zod.object({
   "questionCount": zod.number(),
   "createdAt": zod.string(),
   "joinFrozen": zod.boolean(),
+  "liveQuestion": zod.object({
+  "index": zod.number(),
+  "prompt": zod.string(),
+  "answers": zod.array(zod.string()),
+  "correctIndex": zod.number()
+}).nullable(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),

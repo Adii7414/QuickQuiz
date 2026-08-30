@@ -5,7 +5,9 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { ModerationSessionLiveQuestion } from './moderationSessionLiveQuestion';
 import type { ModerationSessionParticipant } from './moderationSessionParticipant';
+import type { ModerationSessionQuestionStatsItem } from './moderationSessionQuestionStatsItem';
 import type { ModerationSessionStatus } from './moderationSessionStatus';
 
 export interface ModerationSession {
@@ -19,5 +21,7 @@ export interface ModerationSession {
   questionCount: number;
   createdAt: string;
   joinFrozen: boolean;
+  liveQuestion: ModerationSessionLiveQuestion;
+  questionStats: ModerationSessionQuestionStatsItem[];
   participants: ModerationSessionParticipant[];
 }

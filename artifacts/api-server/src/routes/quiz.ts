@@ -52,6 +52,14 @@ function requireRole(role: string) {
     next();
   };
 }
+function requireTeacherOrModerator(req: Request, res: Response, next: () => void): void {
+  const current = session(req);
+  if (!current || !["TEACHER", "MODERATOR"].includes(current.role)) {
+    res.status(403).json({ error: "Teacher or moderator access required" });
+    return;
+  }
+  next();
+}
 function issue(res: Response, user: { id: string; name: string; email: string; role: string }) {
   const token = randomBytes(32).toString("hex");
   auth.set(token, { userId: user.id, role: user.role });
@@ -82,7 +90,13 @@ async function publicModerationSession(row: typeof sessions.$inferSelect) {
     db.select().from(users).where(eq(users.id, row.teacherId)).limit(1),
   ]);
   const questionCount = quiz[0] ? (quiz[0].questions as unknown[]).length : 0;
+  const questions = (quiz[0]?.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }> | undefined) ?? [];
   const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const questionStats = questions.map((question, index) => {
+    const answers = (row.participants as Array<{ answers?: number[] }> || []).map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
+    return { answered: answers.length, correct: answers.filter((answer) => answer === question.correctIndex).length };
+  });
+  const liveQuestion = questions[row.currentQuestion ?? 0];
   return {
     code: row.code,
     quizTitle: quiz[0]?.title ?? "Quiz",
@@ -94,6 +108,8 @@ async function publicModerationSession(row: typeof sessions.$inferSelect) {
     questionCount,
     createdAt: row.createdAt.toISOString(),
     joinFrozen: row.joinFrozen,
+    liveQuestion: liveQuestion ? { index: row.currentQuestion ?? 0, prompt: liveQuestion.prompt, answers: liveQuestion.answers, correctIndex: liveQuestion.correctIndex } : null,
+    questionStats,
     participants: people.map((person) => ({ ...person, percentage: questionCount ? Math.round((person.score / questionCount) * 100) : 0 })),
   };
 }
@@ -224,13 +240,15 @@ router.get("/moderator/sessions", requireRole("MODERATOR"), async (_req, res) =>
   const rows = await db.select().from(sessions).where(inArray(sessions.status, ["LOBBY", "LIVE", "PAUSED"])).orderBy(desc(sessions.createdAt));
   return res.json(await Promise.all(rows.map(publicModerationSession)));
 });
-router.post("/moderator/sessions/:code/action", requireRole("MODERATOR"), async (req, res) => {
+router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const action = String(req.body?.action ?? "");
   const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT"];
   if (!allowed.includes(action)) return res.status(400).json({ error: "Invalid moderation action" });
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
+  const current = session(req)!;
+  if (current.role === "TEACHER" && row.teacherId !== current.userId) return res.status(403).json({ error: "You do not own this quiz session" });
   const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
   let update: Partial<typeof sessions.$inferInsert> = {};
   if (action === "END") update = { status: "COMPLETE", questionStartedAt: null };

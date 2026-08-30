@@ -160,6 +160,18 @@ export const ModerationSessionStatus = {
   COMPLETE: 'COMPLETE',
 } as const;
 
+export type ModerationSessionLiveQuestion = {
+  index: number;
+  prompt: string;
+  answers: string[];
+  correctIndex: number;
+} | null;
+
+export type ModerationSessionQuestionStatsItem = {
+  answered: number;
+  correct: number;
+};
+
 export interface ModerationSession {
   code: string;
   quizTitle: string;
@@ -171,6 +183,8 @@ export interface ModerationSession {
   questionCount: number;
   createdAt: string;
   joinFrozen: boolean;
+  liveQuestion: ModerationSessionLiveQuestion;
+  questionStats: ModerationSessionQuestionStatsItem[];
   participants: ModerationSessionParticipant[];
 }
 

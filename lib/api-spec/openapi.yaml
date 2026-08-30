@@ -246,7 +246,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ModerationSession"
         "400": { description: Invalid moderation action }
-        "403": { description: Moderator access required }
+        "403": { description: Teacher owner or moderator access required }
         "404": { description: Session or participant not found }
   /moderator/users:
     get:
@@ -548,7 +548,7 @@ components:
         percentage: { type: number }
     ModerationSession:
       type: object
-      required: [code, quizTitle, teacherName, teacherEmail, status, participantCount, currentQuestion, questionCount, createdAt, joinFrozen, participants]
+      required: [code, quizTitle, teacherName, teacherEmail, status, participantCount, currentQuestion, questionCount, createdAt, joinFrozen, liveQuestion, questionStats, participants]
       properties:
         code: { type: string }
         quizTitle: { type: string }
@@ -560,6 +560,25 @@ components:
         questionCount: { type: number }
         createdAt: { type: string }
         joinFrozen: { type: boolean }
+        liveQuestion:
+          type: object
+          nullable: true
+          required: [index, prompt, answers, correctIndex]
+          properties:
+            index: { type: number }
+            prompt: { type: string }
+            answers:
+              type: array
+              items: { type: string }
+            correctIndex: { type: number }
+        questionStats:
+          type: array
+          items:
+            type: object
+            required: [answered, correct]
+            properties:
+              answered: { type: number }
+              correct: { type: number }
         participants:
           type: array
           items: { $ref: "#/components/schemas/ModerationSessionParticipant" }
