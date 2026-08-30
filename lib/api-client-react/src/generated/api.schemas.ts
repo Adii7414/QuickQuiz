@@ -220,6 +220,41 @@ export interface AnswerInput {
   answerIndex: number;
 }
 
+export type QuizResultsQuestionsItem = {
+  index: number;
+  prompt: string;
+  answers: string[];
+  correctIndex: number;
+};
+
+export type QuizResultsParticipantsItem = {
+  id: string;
+  name: string;
+  score: number;
+  percentage: number;
+  answers: (number | null)[];
+};
+
+export type QuizResultsQuestionStatsItem = {
+  answered: number;
+  correct: number;
+};
+
+export interface QuizResults {
+  code: string;
+  quizTitle: string;
+  questions: QuizResultsQuestionsItem[];
+  participants: QuizResultsParticipantsItem[];
+  questionStats?: QuizResultsQuestionStatsItem[];
+  totalParticipants: number;
+  completedParticipants: number;
+  averagePercentage: number;
+  highestPercentage: number;
+  lowestPercentage: number;
+  totalAnswers: number;
+  correctAnswers: number;
+}
+
 export type ListTeacherApplicationsParams = {
 status?: string;
 search?: string;

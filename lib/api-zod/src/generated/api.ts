@@ -658,3 +658,37 @@ export const SubmitAnswerResponse = zod.object({
 })
 
 
+export const GetQuizSessionResultsParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const GetQuizSessionResultsResponse = zod.object({
+  "code": zod.string(),
+  "quizTitle": zod.string(),
+  "questions": zod.array(zod.object({
+  "index": zod.number(),
+  "prompt": zod.string(),
+  "answers": zod.array(zod.string()),
+  "correctIndex": zod.number()
+})),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "score": zod.number(),
+  "percentage": zod.number(),
+  "answers": zod.array(zod.number().nullable())
+})),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})).optional(),
+  "totalParticipants": zod.number(),
+  "completedParticipants": zod.number(),
+  "averagePercentage": zod.number(),
+  "highestPercentage": zod.number(),
+  "lowestPercentage": zod.number(),
+  "totalAnswers": zod.number(),
+  "correctAnswers": zod.number()
+})
+
+

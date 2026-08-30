@@ -32,6 +32,7 @@ import type {
   Participant,
   Quiz,
   QuizInput,
+  QuizResults,
   QuizSession,
   Session,
   TeacherApplication,
@@ -1558,4 +1559,75 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getSubmitAnswerMutationOptions(options));
     }
+
+export const getGetQuizSessionResultsUrl = (code: string,) => {
+
+
+
+
+  return `/api/sessions/${code}/results`
+}
+
+export const getQuizSessionResults = async (code: string, options?: Parameters<typeof customFetch>[1]): Promise<QuizResults> => {
+
+  return customFetch<QuizResults>(getGetQuizSessionResultsUrl(code),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetQuizSessionResultsQueryKey = (code: string,) => {
+    return [
+    `/api/sessions/${code}/results`
+    ] as const;
+    }
+
+
+export const getGetQuizSessionResultsQueryOptions = <TData = Awaited<ReturnType<typeof getQuizSessionResults>>, TError = ErrorType<unknown>>(code: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuizSessionResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetQuizSessionResultsQueryKey(code);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getQuizSessionResults>>> = ({ signal }) => getQuizSessionResults(code, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: code !== null && code !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getQuizSessionResults>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetQuizSessionResultsQueryResult = NonNullable<Awaited<ReturnType<typeof getQuizSessionResults>>>
+export type GetQuizSessionResultsQueryError = ErrorType<unknown>
+
+
+
+export function useGetQuizSessionResults<TData = Awaited<ReturnType<typeof getQuizSessionResults>>, TError = ErrorType<unknown>>(
+ code: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getQuizSessionResults>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetQuizSessionResultsQueryOptions(code,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

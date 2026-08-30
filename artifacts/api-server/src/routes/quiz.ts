@@ -221,6 +221,48 @@ router.post("/sessions/:code/advance", requireRole("TEACHER"), async (req, res) 
   const updated = (await db.update(sessions).set(lastQuestion ? { status: "COMPLETE", questionStartedAt: null } : { currentQuestion: (row.currentQuestion ?? 0) + 1, questionStartedAt: new Date() }).where(eq(sessions.code, code)).returning())[0];
   return res.json(publicSession(updated, quiz));
 });
+router.get("/sessions/:code/results", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const code = String(req.params.code).toUpperCase();
+  const row = (await db.select().from(sessions).where(and(eq(sessions.code, code), eq(sessions.teacherId, current.userId))).limit(1))[0];
+  if (!row) return res.status(404).json({ error: "Session not found" });
+  const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
+  if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+
+  const questions = quiz.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }>;
+  const people = (row.participants as Array<{ id: string; name: string; score: number; answers?: Array<number | undefined> }>) || [];
+  const participants = people
+    .map((person) => ({
+      id: person.id,
+      name: person.name,
+      score: person.score,
+      percentage: questions.length ? Math.round((person.score / questions.length) * 100) : 0,
+      answers: questions.map((_, index) => person.answers?.[index] ?? null),
+    }))
+    .sort((a, b) => b.score - a.score || b.percentage - a.percentage || a.name.localeCompare(b.name));
+  const questionStats = questions.map((question, index) => {
+    const answers = people.map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
+    return { answered: answers.length, correct: answers.filter((answer) => answer === question.correctIndex).length };
+  });
+  const totalAnswers = questionStats.reduce((sum, stat) => sum + stat.answered, 0);
+  const correctAnswers = questionStats.reduce((sum, stat) => sum + stat.correct, 0);
+  const scores = participants.map((person) => person.percentage);
+
+  return res.json({
+    code: row.code,
+    quizTitle: quiz.title,
+    questions: questions.map((question, index) => ({ index, prompt: question.prompt, answers: question.answers, correctIndex: question.correctIndex })),
+    participants,
+    questionStats,
+    totalParticipants: participants.length,
+    completedParticipants: people.filter((person) => (person.answers?.filter((answer) => typeof answer === "number").length ?? 0) >= questions.length).length,
+    averagePercentage: scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0,
+    highestPercentage: scores.length ? Math.max(...scores) : 0,
+    lowestPercentage: scores.length ? Math.min(...scores) : 0,
+    totalAnswers,
+    correctAnswers,
+  });
+});
 router.post("/sessions/:code/answers", async (req, res) => {
   const { participantId, questionIndex, answerIndex } = req.body ?? {};
   const code = String(req.params.code).toUpperCase();
