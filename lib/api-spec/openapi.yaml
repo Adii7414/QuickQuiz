@@ -341,6 +341,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Participant"
+  /sessions/{code}/results:
+    get:
+      operationId: getQuizSessionResults
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Teacher-only detailed quiz results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizResults"
 components:
   schemas:
     HealthStatus:
@@ -503,4 +516,52 @@ components:
         participantId: { type: string }
         questionIndex: { type: number, minimum: 0 }
         answerIndex: { type: number, minimum: 0, maximum: 3 }
+    QuizResults:
+      type: object
+      required: [code, quizTitle, questions, participants, totalParticipants, completedParticipants, averagePercentage, highestPercentage, lowestPercentage, totalAnswers, correctAnswers]
+      properties:
+        code: { type: string }
+        quizTitle: { type: string }
+        questions:
+          type: array
+          items:
+            type: object
+            required: [index, prompt, answers, correctIndex]
+            properties:
+              index: { type: number }
+              prompt: { type: string }
+              answers:
+                type: array
+                items: { type: string }
+              correctIndex: { type: number }
+        participants:
+          type: array
+          items:
+            type: object
+            required: [id, name, score, percentage, answers]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              score: { type: number }
+              percentage: { type: number }
+              answers:
+                type: array
+                items:
+                  type: number
+                  nullable: true
+        questionStats:
+          type: array
+          items:
+            type: object
+            required: [answered, correct]
+            properties:
+              answered: { type: number }
+              correct: { type: number }
+        totalParticipants: { type: number }
+        completedParticipants: { type: number }
+        averagePercentage: { type: number }
+        highestPercentage: { type: number }
+        lowestPercentage: { type: number }
+        totalAnswers: { type: number }
+        correctAnswers: { type: number }
 
