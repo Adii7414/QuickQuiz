@@ -232,6 +232,9 @@ export const UpdateTeacherStatusResponse = zod.object({
 
 export const listQuizzesResponseOneTitleMin = 2;
 
+export const listQuizzesResponseOneTimeLimitSecondsMin = 0;
+export const listQuizzesResponseOneTimeLimitSecondsMax = 600;
+
 export const listQuizzesResponseOneQuestionsItemPromptMin = 2;
 
 
@@ -246,6 +249,7 @@ export const listQuizzesResponseOneQuestionsItemCorrectIndexMax = 3;
 export const ListQuizzesResponseItem = zod.object({
   "title": zod.string().min(listQuizzesResponseOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(listQuizzesResponseOneTimeLimitSecondsMin).max(listQuizzesResponseOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(listQuizzesResponseOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(listQuizzesResponseOneQuestionsItemAnswersMin).max(listQuizzesResponseOneQuestionsItemAnswersMax),
@@ -261,6 +265,9 @@ export const ListQuizzesResponse = zod.array(ListQuizzesResponseItem)
 
 export const createQuizBodyTitleMin = 2;
 
+export const createQuizBodyTimeLimitSecondsMin = 0;
+export const createQuizBodyTimeLimitSecondsMax = 600;
+
 export const createQuizBodyQuestionsItemPromptMin = 2;
 
 
@@ -275,6 +282,7 @@ export const createQuizBodyQuestionsItemCorrectIndexMax = 3;
 export const CreateQuizBody = zod.object({
   "title": zod.string().min(createQuizBodyTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(createQuizBodyTimeLimitSecondsMin).max(createQuizBodyTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(createQuizBodyQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(createQuizBodyQuestionsItemAnswersMin).max(createQuizBodyQuestionsItemAnswersMax),
@@ -283,6 +291,9 @@ export const CreateQuizBody = zod.object({
 })
 
 export const createQuizResponseOneTitleMin = 2;
+
+export const createQuizResponseOneTimeLimitSecondsMin = 0;
+export const createQuizResponseOneTimeLimitSecondsMax = 600;
 
 export const createQuizResponseOneQuestionsItemPromptMin = 2;
 
@@ -298,6 +309,7 @@ export const createQuizResponseOneQuestionsItemCorrectIndexMax = 3;
 export const CreateQuizResponse = zod.object({
   "title": zod.string().min(createQuizResponseOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(createQuizResponseOneTimeLimitSecondsMin).max(createQuizResponseOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(createQuizResponseOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(createQuizResponseOneQuestionsItemAnswersMin).max(createQuizResponseOneQuestionsItemAnswersMax),
@@ -316,6 +328,9 @@ export const UpdateQuizParams = zod.object({
 
 export const updateQuizBodyTitleMin = 2;
 
+export const updateQuizBodyTimeLimitSecondsMin = 0;
+export const updateQuizBodyTimeLimitSecondsMax = 600;
+
 export const updateQuizBodyQuestionsItemPromptMin = 2;
 
 
@@ -330,6 +345,7 @@ export const updateQuizBodyQuestionsItemCorrectIndexMax = 3;
 export const UpdateQuizBody = zod.object({
   "title": zod.string().min(updateQuizBodyTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(updateQuizBodyTimeLimitSecondsMin).max(updateQuizBodyTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(updateQuizBodyQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(updateQuizBodyQuestionsItemAnswersMin).max(updateQuizBodyQuestionsItemAnswersMax),
@@ -338,6 +354,9 @@ export const UpdateQuizBody = zod.object({
 })
 
 export const updateQuizResponseOneTitleMin = 2;
+
+export const updateQuizResponseOneTimeLimitSecondsMin = 0;
+export const updateQuizResponseOneTimeLimitSecondsMax = 600;
 
 export const updateQuizResponseOneQuestionsItemPromptMin = 2;
 
@@ -353,6 +372,7 @@ export const updateQuizResponseOneQuestionsItemCorrectIndexMax = 3;
 export const UpdateQuizResponse = zod.object({
   "title": zod.string().min(updateQuizResponseOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(updateQuizResponseOneTimeLimitSecondsMin).max(updateQuizResponseOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(updateQuizResponseOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(updateQuizResponseOneQuestionsItemAnswersMin).max(updateQuizResponseOneQuestionsItemAnswersMax),
@@ -378,6 +398,9 @@ export const HostQuizParams = zod.object({
 
 export const hostQuizResponseQuizOneTitleMin = 2;
 
+export const hostQuizResponseQuizOneTimeLimitSecondsMin = 0;
+export const hostQuizResponseQuizOneTimeLimitSecondsMax = 600;
+
 export const hostQuizResponseQuizOneQuestionsItemPromptMin = 2;
 
 
@@ -395,6 +418,11 @@ export const HostQuizResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
+  "questionStartedAt": zod.coerce.date().nullish(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -405,6 +433,7 @@ export const HostQuizResponse = zod.object({
   "quiz": zod.object({
   "title": zod.string().min(hostQuizResponseQuizOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(hostQuizResponseQuizOneTimeLimitSecondsMin).max(hostQuizResponseQuizOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(hostQuizResponseQuizOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(hostQuizResponseQuizOneQuestionsItemAnswersMin).max(hostQuizResponseQuizOneQuestionsItemAnswersMax),
@@ -424,6 +453,9 @@ export const GetQuizSessionParams = zod.object({
 
 export const getQuizSessionResponseQuizOneTitleMin = 2;
 
+export const getQuizSessionResponseQuizOneTimeLimitSecondsMin = 0;
+export const getQuizSessionResponseQuizOneTimeLimitSecondsMax = 600;
+
 export const getQuizSessionResponseQuizOneQuestionsItemPromptMin = 2;
 
 
@@ -441,6 +473,11 @@ export const GetQuizSessionResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
+  "questionStartedAt": zod.coerce.date().nullish(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -451,6 +488,7 @@ export const GetQuizSessionResponse = zod.object({
   "quiz": zod.object({
   "title": zod.string().min(getQuizSessionResponseQuizOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(getQuizSessionResponseQuizOneTimeLimitSecondsMin).max(getQuizSessionResponseQuizOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(getQuizSessionResponseQuizOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(getQuizSessionResponseQuizOneQuestionsItemAnswersMin).max(getQuizSessionResponseQuizOneQuestionsItemAnswersMax),
@@ -490,6 +528,9 @@ export const StartQuizSessionParams = zod.object({
 
 export const startQuizSessionResponseQuizOneTitleMin = 2;
 
+export const startQuizSessionResponseQuizOneTimeLimitSecondsMin = 0;
+export const startQuizSessionResponseQuizOneTimeLimitSecondsMax = 600;
+
 export const startQuizSessionResponseQuizOneQuestionsItemPromptMin = 2;
 
 
@@ -507,6 +548,11 @@ export const StartQuizSessionResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "currentQuestion": zod.number().optional(),
+  "questionStartedAt": zod.coerce.date().nullish(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
   "name": zod.string(),
@@ -517,10 +563,66 @@ export const StartQuizSessionResponse = zod.object({
   "quiz": zod.object({
   "title": zod.string().min(startQuizSessionResponseQuizOneTitleMin),
   "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(startQuizSessionResponseQuizOneTimeLimitSecondsMin).max(startQuizSessionResponseQuizOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
   "questions": zod.array(zod.object({
   "prompt": zod.string().min(startQuizSessionResponseQuizOneQuestionsItemPromptMin),
   "answers": zod.array(zod.string().min(1)).min(startQuizSessionResponseQuizOneQuestionsItemAnswersMin).max(startQuizSessionResponseQuizOneQuestionsItemAnswersMax),
   "correctIndex": zod.number().min(startQuizSessionResponseQuizOneQuestionsItemCorrectIndexMin).max(startQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax)
+}))
+}).and(zod.object({
+  "id": zod.string(),
+  "questionCount": zod.number(),
+  "updatedAt": zod.string()
+})).optional()
+})
+
+
+export const AdvanceQuizSessionParams = zod.object({
+  "code": zod.coerce.string()
+})
+
+export const advanceQuizSessionResponseQuizOneTitleMin = 2;
+
+export const advanceQuizSessionResponseQuizOneTimeLimitSecondsMin = 0;
+export const advanceQuizSessionResponseQuizOneTimeLimitSecondsMax = 600;
+
+export const advanceQuizSessionResponseQuizOneQuestionsItemPromptMin = 2;
+
+
+export const advanceQuizSessionResponseQuizOneQuestionsItemAnswersMin = 4;
+export const advanceQuizSessionResponseQuizOneQuestionsItemAnswersMax = 4;
+
+export const advanceQuizSessionResponseQuizOneQuestionsItemCorrectIndexMin = 0;
+export const advanceQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax = 3;
+
+
+
+export const AdvanceQuizSessionResponse = zod.object({
+  "code": zod.string(),
+  "status": zod.enum(['LOBBY', 'LIVE', 'COMPLETE']),
+  "quizTitle": zod.string(),
+  "participantCount": zod.number(),
+  "currentQuestion": zod.number().optional(),
+  "questionStartedAt": zod.coerce.date().nullish(),
+  "questionStats": zod.array(zod.object({
+  "answered": zod.number(),
+  "correct": zod.number()
+})).optional(),
+  "participants": zod.array(zod.object({
+  "id": zod.string(),
+  "name": zod.string(),
+  "answered": zod.number(),
+  "score": zod.number(),
+  "percentage": zod.number().optional()
+})),
+  "quiz": zod.object({
+  "title": zod.string().min(advanceQuizSessionResponseQuizOneTitleMin),
+  "description": zod.string(),
+  "timeLimitSeconds": zod.number().min(advanceQuizSessionResponseQuizOneTimeLimitSecondsMin).max(advanceQuizSessionResponseQuizOneTimeLimitSecondsMax).optional().describe('Optional per-question countdown. Zero disables the timer.'),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(advanceQuizSessionResponseQuizOneQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(advanceQuizSessionResponseQuizOneQuestionsItemAnswersMin).max(advanceQuizSessionResponseQuizOneQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(advanceQuizSessionResponseQuizOneQuestionsItemCorrectIndexMin).max(advanceQuizSessionResponseQuizOneQuestionsItemCorrectIndexMax)
 }))
 }).and(zod.object({
   "id": zod.string(),

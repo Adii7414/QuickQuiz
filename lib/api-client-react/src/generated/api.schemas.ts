@@ -155,6 +155,12 @@ export interface QuizInput {
   /** @minLength 2 */
   title: string;
   description: string;
+  /**
+     * Optional per-question countdown. Zero disables the timer.
+     * @minimum 0
+     * @maximum 600
+     */
+  timeLimitSeconds?: number;
   questions: QuestionInput[];
 }
 
@@ -173,6 +179,11 @@ export const QuizSessionStatus = {
   COMPLETE: 'COMPLETE',
 } as const;
 
+export type QuizSessionQuestionStatsItem = {
+  answered: number;
+  correct: number;
+};
+
 export interface Participant {
   id: string;
   name: string;
@@ -187,6 +198,8 @@ export interface QuizSession {
   quizTitle: string;
   participantCount: number;
   currentQuestion?: number;
+  questionStartedAt?: string | null;
+  questionStats?: QuizSessionQuestionStatsItem[];
   participants: Participant[];
   quiz?: Quiz;
 }

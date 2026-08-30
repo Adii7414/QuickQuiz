@@ -7,6 +7,7 @@
  */
 import type { Participant } from './participant';
 import type { Quiz } from './quiz';
+import type { QuizSessionQuestionStatsItem } from './quizSessionQuestionStatsItem';
 import type { QuizSessionStatus } from './quizSessionStatus';
 
 export interface QuizSession {
@@ -15,6 +16,8 @@ export interface QuizSession {
   quizTitle: string;
   participantCount: number;
   currentQuestion?: number;
+  questionStartedAt?: Date | null;
+  questionStats?: QuizSessionQuestionStatsItem[];
   participants: Participant[];
   quiz?: Quiz;
 }

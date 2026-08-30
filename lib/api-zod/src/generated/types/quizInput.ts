@@ -11,5 +11,11 @@ export interface QuizInput {
   /** @minLength 2 */
   title: string;
   description: string;
+  /**
+     * Optional per-question countdown. Zero disables the timer.
+     * @minimum 0
+     * @maximum 600
+     */
+  timeLimitSeconds?: number;
   questions: QuestionInput[];
 }

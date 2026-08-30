@@ -41,12 +41,18 @@ function publicApplication(row: typeof applications.$inferSelect) {
 }
 function publicQuiz(row: typeof quizzes.$inferSelect) {
   const questions = row.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }>;
-  return { id: row.id, title: row.title, description: row.description, questions, questionCount: questions.length, updatedAt: row.updatedAt.toISOString() };
+  return { id: row.id, title: row.title, description: row.description, timeLimitSeconds: row.timeLimitSeconds ?? undefined, questions, questionCount: questions.length, updatedAt: row.updatedAt.toISOString() };
 }
 function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.$inferSelect) {
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; answers?: number[] }>) || [];
   const q = quiz ? publicQuiz(quiz) : undefined;
-  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, participants: people.map(p => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
+  const questionStats = quiz
+    ? (quiz.questions as Array<{ correctIndex: number }>).map((question, index) => {
+        const responses = people.map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
+        return { answered: responses.length, correct: responses.filter((answer) => answer === question.correctIndex).length };
+      })
+    : undefined;
+  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
 }
 
 router.post("/auth/teacher/login", async (req, res) => {
@@ -146,16 +152,19 @@ router.get("/quizzes", requireRole("TEACHER"), async (req, res) => {
 });
 router.post("/quizzes", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
-  const { title, description = "", questions = [] } = req.body ?? {};
-  if (!title || !Array.isArray(questions) || questions.some((q: { answers?: string[] }) => !Array.isArray(q.answers) || q.answers.length !== 4)) return res.status(400).json({ error: "A quiz needs a title and exactly four answers per question." });
-  const row = (await db.insert(quizzes).values({ id: randomUUID(), teacherId: current.userId, title, description, questions }).returning())[0];
+  const { title, description = "", timeLimitSeconds = 0, questions = [] } = req.body ?? {};
+  const timer = Number(timeLimitSeconds);
+  if (!title || !Array.isArray(questions) || questions.some((q: { answers?: string[] }) => !Array.isArray(q.answers) || q.answers.length !== 4) || !Number.isInteger(timer) || timer < 0 || timer > 600) return res.status(400).json({ error: "A quiz needs a title, valid timer settings, and exactly four answers per question." });
+  const row = (await db.insert(quizzes).values({ id: randomUUID(), teacherId: current.userId, title, description, timeLimitSeconds: timer || null, questions }).returning())[0];
   return res.status(201).json(publicQuiz(row));
 });
 router.patch("/quizzes/:id", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
-  const { title, description = "", questions = [] } = req.body ?? {};
+  const { title, description = "", timeLimitSeconds = 0, questions = [] } = req.body ?? {};
   const id = String(req.params.id);
-  const row = (await db.update(quizzes).set({ title, description, questions, updatedAt: new Date() }).where(and(eq(quizzes.id, id), eq(quizzes.teacherId, current.userId))).returning())[0];
+  const timer = Number(timeLimitSeconds);
+  if (!title || !Array.isArray(questions) || questions.some((q: { answers?: string[] }) => !Array.isArray(q.answers) || q.answers.length !== 4) || !Number.isInteger(timer) || timer < 0 || timer > 600) return res.status(400).json({ error: "A quiz needs a title, valid timer settings, and exactly four answers per question." });
+  const row = (await db.update(quizzes).set({ title, description, timeLimitSeconds: timer || null, questions, updatedAt: new Date() }).where(and(eq(quizzes.id, id), eq(quizzes.teacherId, current.userId))).returning())[0];
   return row ? res.json(publicQuiz(row)) : res.status(404).json({ error: "Quiz not found" });
 });
 router.delete("/quizzes/:id", requireRole("TEACHER"), async (req, res) => {
@@ -194,10 +203,23 @@ router.post("/sessions/:code", async (req, res) => {
 router.post("/sessions/:code/start", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
   const code = String(req.params.code).toUpperCase();
-  const row = (await db.update(sessions).set({ status: "LIVE" }).where(and(eq(sessions.code, code), eq(sessions.teacherId, current.userId))).returning())[0];
+  const row = (await db.update(sessions).set({ status: "LIVE", currentQuestion: 0, questionStartedAt: new Date() }).where(and(eq(sessions.code, code), eq(sessions.teacherId, current.userId))).returning())[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
   return res.json(publicSession(row, quiz));
+});
+router.post("/sessions/:code/advance", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const code = String(req.params.code).toUpperCase();
+  const row = (await db.select().from(sessions).where(and(eq(sessions.code, code), eq(sessions.teacherId, current.userId))).limit(1))[0];
+  if (!row) return res.status(404).json({ error: "Session not found" });
+  const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
+  if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+  if (row.status === "LOBBY") return res.status(400).json({ error: "Start the quiz before advancing." });
+  if (row.status === "COMPLETE") return res.json(publicSession(row, quiz));
+  const lastQuestion = (row.currentQuestion ?? 0) >= (quiz.questions as unknown[]).length - 1;
+  const updated = (await db.update(sessions).set(lastQuestion ? { status: "COMPLETE", questionStartedAt: null } : { currentQuestion: (row.currentQuestion ?? 0) + 1, questionStartedAt: new Date() }).where(eq(sessions.code, code)).returning())[0];
+  return res.json(publicSession(updated, quiz));
 });
 router.post("/sessions/:code/answers", async (req, res) => {
   const { participantId, questionIndex, answerIndex } = req.body ?? {};
@@ -208,11 +230,15 @@ router.post("/sessions/:code/answers", async (req, res) => {
   const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
   const person = people.find(p => p.id === participantId);
   const questions = quiz.questions as Array<{ correctIndex: number }>;
-  if (!person || !questions[questionIndex]) return res.status(400).json({ error: "Invalid answer." });
+  if (row.status !== "LIVE" || Number(questionIndex) !== (row.currentQuestion ?? 0) || !person || !questions[questionIndex]) return res.status(400).json({ error: "This question is not accepting answers." });
+  if (quiz.timeLimitSeconds && row.questionStartedAt && Date.now() >= row.questionStartedAt.getTime() + quiz.timeLimitSeconds * 1000) return res.status(400).json({ error: "Time is up for this question." });
+  const participantWithAnswers = person as typeof person & { answers?: number[] };
+  if (participantWithAnswers.answers?.[Number(questionIndex)] !== undefined) return res.status(400).json({ error: "This question has already been answered." });
   person.answered = Math.max(person.answered, Number(questionIndex) + 1);
   if (Number(answerIndex) === questions[questionIndex].correctIndex) person.score += 1;
-  const isFinalQuestion = Number(questionIndex) >= questions.length - 1;
-  await db.update(sessions).set({ participants: people, ...(isFinalQuestion ? { status: "COMPLETE" as const } : {}) }).where(eq(sessions.code, row.code));
+  participantWithAnswers.answers = [...(participantWithAnswers.answers ?? [])];
+  participantWithAnswers.answers[Number(questionIndex)] = Number(answerIndex);
+  await db.update(sessions).set({ participants: people }).where(eq(sessions.code, row.code));
   return res.json({ ...person, percentage: Math.round((person.score / questions.length) * 100) });
 });
 

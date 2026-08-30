@@ -309,6 +309,19 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/QuizSession"
+  /sessions/{code}/advance:
+    post:
+      operationId: advanceQuizSession
+      tags: [sessions]
+      parameters:
+        - { name: code, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Advanced or completed session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuizSession"
   /sessions/{code}/answers:
     post:
       operationId: submitAnswer
@@ -422,6 +435,7 @@ components:
       properties:
         title: { type: string, minLength: 2 }
         description: { type: string }
+        timeLimitSeconds: { type: number, minimum: 0, maximum: 600, description: "Optional per-question countdown. Zero disables the timer." }
         questions:
           type: array
           items: { $ref: "#/components/schemas/QuestionInput" }
@@ -454,6 +468,15 @@ components:
         quizTitle: { type: string }
         participantCount: { type: number }
         currentQuestion: { type: number }
+        questionStartedAt: { type: string, format: date-time, nullable: true }
+        questionStats:
+          type: array
+          items:
+            type: object
+            required: [answered, correct]
+            properties:
+              answered: { type: number }
+              correct: { type: number }
         participants:
           type: array
           items: { $ref: "#/components/schemas/Participant" }

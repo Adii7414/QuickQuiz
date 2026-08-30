@@ -36,6 +36,7 @@ export const quizzes = pgTable("quizzes", {
   teacherId: text("teacher_id").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull().default(""),
+  timeLimitSeconds: integer("time_limit_seconds"),
   questions: jsonb("questions").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
@@ -47,6 +48,7 @@ export const sessions = pgTable("quiz_sessions", {
   teacherId: text("teacher_id").notNull(),
   status: text("status").notNull().default("LOBBY"),
   currentQuestion: integer("current_question").default(0),
+  questionStartedAt: timestamp("question_started_at"),
   participants: jsonb("participants").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

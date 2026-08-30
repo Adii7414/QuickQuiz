@@ -1428,6 +1428,71 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getStartQuizSessionMutationOptions(options));
     }
 
+export const getAdvanceQuizSessionUrl = (code: string,) => {
+
+
+
+
+  return `/api/sessions/${code}/advance`
+}
+
+export const advanceQuizSession = async (code: string, options?: Parameters<typeof customFetch>[1]): Promise<QuizSession> => {
+
+  return customFetch<QuizSession>(getAdvanceQuizSessionUrl(code),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getAdvanceQuizSessionMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceQuizSession>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof advanceQuizSession>>, TError,{code: string}, TContext> => {
+
+const mutationKey = ['advanceQuizSession'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof advanceQuizSession>>, {code: string}> = (props) => {
+          const {code} = props ?? {};
+
+          return  advanceQuizSession(code,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdvanceQuizSessionMutationResult = NonNullable<Awaited<ReturnType<typeof advanceQuizSession>>>
+
+    export type AdvanceQuizSessionMutationError = ErrorType<unknown>
+
+    export const useAdvanceQuizSession = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof advanceQuizSession>>, TError,{code: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof advanceQuizSession>>,
+        TError,
+        {code: string},
+        TContext
+      > => {
+      return useMutation(getAdvanceQuizSessionMutationOptions(options));
+    }
+
 export const getSubmitAnswerUrl = (code: string,) => {
 
 

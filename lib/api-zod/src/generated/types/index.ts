@@ -23,6 +23,7 @@ export * from './questionInput';
 export * from './quiz';
 export * from './quizInput';
 export * from './quizSession';
+export * from './quizSessionQuestionStatsItem';
 export * from './quizSessionStatus';
 export * from './session';
 export * from './teacherApplication';
