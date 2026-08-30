@@ -239,6 +239,7 @@ function ErrorState({ message = 'We could not load this just now.', retry }: { m
 
 function PlayPage() {
   const { code = '' } = useParams<{ code: string }>();
+  const client = useQueryClient();
   const sessionQuery = useGetQuizSession(code, { query: { queryKey: getGetQuizSessionQueryKey(code), enabled: Boolean(code), refetchInterval: 4000 } });
   const joinQuiz = useJoinQuizSession();
   const submitAnswer = useSubmitAnswer();
@@ -259,7 +260,7 @@ function PlayPage() {
   const onAnswer = () => {
     if (selected === null || !question || !participantId) return;
     const payload: AnswerInput = { participantId, questionIndex: current, answerIndex: selected };
-    submitAnswer.mutate({ code, data: payload }, { onSuccess: () => { setAnswers((old) => ({ ...old, [current]: selected })); setSelected(null); if (current < questions.length - 1) setCurrent((old) => old + 1); } });
+    submitAnswer.mutate({ code, data: payload }, { onSuccess: () => { setAnswers((old) => ({ ...old, [current]: selected })); setSelected(null); client.invalidateQueries({ queryKey: getGetQuizSessionQueryKey(code) }); if (current < questions.length - 1) setCurrent((old) => old + 1); } });
   };
   if (sessionQuery.isLoading) return <PageFrame><TopNav /><main className="mx-auto max-w-2xl px-5 py-16"><LoadingState /></main></PageFrame>;
   if (sessionQuery.isError || !session) return <PageFrame><TopNav /><main className="mx-auto max-w-2xl px-5 py-16"><ErrorState message="That quiz code is not active." retry={() => sessionQuery.refetch()} /></main></PageFrame>;

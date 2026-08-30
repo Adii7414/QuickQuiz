@@ -211,7 +211,8 @@ router.post("/sessions/:code/answers", async (req, res) => {
   if (!person || !questions[questionIndex]) return res.status(400).json({ error: "Invalid answer." });
   person.answered = Math.max(person.answered, Number(questionIndex) + 1);
   if (Number(answerIndex) === questions[questionIndex].correctIndex) person.score += 1;
-  await db.update(sessions).set({ participants: people }).where(eq(sessions.code, row.code));
+  const isFinalQuestion = Number(questionIndex) >= questions.length - 1;
+  await db.update(sessions).set({ participants: people, ...(isFinalQuestion ? { status: "COMPLETE" as const } : {}) }).where(eq(sessions.code, row.code));
   return res.json({ ...person, percentage: Math.round((person.score / questions.length) * 100) });
 });
 
