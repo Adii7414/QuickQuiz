@@ -635,12 +635,13 @@ components:
             updatedAt: { type: string }
     QuizSession:
       type: object
-      required: [code, status, quizTitle, participantCount, participants]
+      required: [code, status, quizTitle, participantCount, joinFrozen, participants]
       properties:
         code: { type: string }
         status: { type: string, enum: [LOBBY, LIVE, PAUSED, COMPLETE] }
         quizTitle: { type: string }
         participantCount: { type: number }
+        joinFrozen: { type: boolean }
         currentQuestion: { type: number }
         questionStartedAt: { type: string, format: date-time, nullable: true }
         questionStats:

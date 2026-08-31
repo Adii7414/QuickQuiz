@@ -306,6 +306,7 @@ export interface QuizSession {
   status: QuizSessionStatus;
   quizTitle: string;
   participantCount: number;
+  joinFrozen: boolean;
   currentQuestion?: number;
   questionStartedAt?: string | null;
   questionStats?: QuizSessionQuestionStatsItem[];

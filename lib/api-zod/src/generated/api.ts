@@ -534,6 +534,7 @@ export const HostQuizResponse = zod.object({
   "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
+  "joinFrozen": zod.boolean(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -589,6 +590,7 @@ export const GetQuizSessionResponse = zod.object({
   "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
+  "joinFrozen": zod.boolean(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -664,6 +666,7 @@ export const StartQuizSessionResponse = zod.object({
   "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
+  "joinFrozen": zod.boolean(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -719,6 +722,7 @@ export const AdvanceQuizSessionResponse = zod.object({
   "status": zod.enum(['LOBBY', 'LIVE', 'PAUSED', 'COMPLETE']),
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
+  "joinFrozen": zod.boolean(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({

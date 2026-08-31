@@ -118,7 +118,9 @@ router.post("/auth/teacher/login", async (req, res) => {
   const email = String(req.body?.email ?? "").toLowerCase();
   const password = String(req.body?.password ?? "");
   const rows = await db.select().from(users).where(and(eq(users.email, email), eq(users.role, "TEACHER"))).limit(1);
-  if (!rows[0] || rows[0].status !== "ACTIVE" || !verify(password, rows[0].passwordHash)) return res.status(401).json({ error: "Invalid credentials" });
+  if (!rows[0] || !verify(password, rows[0].passwordHash)) return res.status(401).json({ error: "Invalid credentials" });
+  if (rows[0].status === "SUSPENDED") return res.status(403).json({ code: "TEACHER_SUSPENDED", error: "Teacher account suspended" });
+  if (rows[0].status !== "ACTIVE") return res.status(401).json({ error: "Invalid credentials" });
   return issue(res, rows[0]);
 });
 router.post("/auth/moderator/login", async (req, res) => {
@@ -143,6 +145,12 @@ router.get("/auth/me", async (req, res) => {
   if (!current) return res.status(401).json({ error: "Not authenticated" });
   const row = (await db.select().from(users).where(eq(users.id, current.userId)).limit(1))[0];
   if (!row) return res.status(401).json({ error: "Not authenticated" });
+  if (row.role === "TEACHER" && row.status === "SUSPENDED") {
+    const token = req.cookies?.quiz_session;
+    if (token) auth.delete(token);
+    res.clearCookie("quiz_session");
+    return res.status(403).json({ code: "TEACHER_SUSPENDED", error: "Teacher account suspended" });
+  }
   return res.json({ id: row.id, name: row.name, email: row.email, role: row.role });
 });
 router.post("/applications", async (req, res) => {
@@ -318,7 +326,7 @@ router.get("/sessions/:code", async (req, res) => {
 router.post("/sessions/:code", async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
-  if (!row || row.status !== "LOBBY" || row.joinFrozen) return res.status(400).json({ error: "This quiz is no longer accepting players." });
+  if (!row || row.status !== "LOBBY" || row.joinFrozen) return res.status(400).json({ code: "ROOM_NOT_ACCEPTING", error: "This quiz is no longer accepting players." });
   const name = String(req.body?.name ?? "").trim();
   if (!name) return res.status(400).json({ error: "Enter your name." });
   const participant = { id: randomUUID(), name, answered: 0, score: 0 };

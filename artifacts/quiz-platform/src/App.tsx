@@ -154,8 +154,8 @@ function Button({ children, className = '', variant = 'primary', ...props }: Rea
 }
 
 function ConfirmDialog({ title, message, confirmLabel = 'Confirm', onConfirm, onClose }: { title: string; message: string; confirmLabel?: string; onConfirm: () => void; onClose: () => void }) {
-  return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[hsl(var(--foreground)/.32)] p-5" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-    <div className="w-full max-w-md rounded-[1.5rem] bg-[hsl(var(--card))] p-6 shadow-[0_30px_80px_hsl(214_36%_19%/.25)] sm:p-7">
+  return <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[hsl(214_36%_19%/.18)] p-5 backdrop-blur-[1px]" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
+    <div className="w-full max-w-md rounded-[1.5rem] bg-[hsl(var(--card))] p-6 text-[hsl(var(--foreground))] shadow-[0_24px_60px_hsl(214_36%_19%/.18)] sm:p-7">
       <div className="flex size-11 items-center justify-center rounded-2xl bg-[hsl(var(--destructive)/.1)] text-[hsl(var(--destructive))]"><ShieldCheck className="size-5" /></div>
       <h2 id="confirm-dialog-title" className="mt-5 font-display text-2xl font-bold tracking-[-.05em]">{title}</h2>
       <p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{message}</p>
@@ -273,6 +273,26 @@ function LoadingState({ label = 'Loading your room' }: { label?: string }) {
 function ErrorState({ message = 'We could not load this just now.', retry }: { message?: string; retry?: () => void }) {
   return <div className="surface flex flex-col items-center justify-center gap-3 rounded-2xl p-8 text-center"><XCircle className="size-8 text-[hsl(var(--destructive))]" /><p className="font-semibold">{message}</p>{retry && <Button variant="soft" onClick={retry} data-testid="button-retry"><RefreshCw className="size-4" /> Try again</Button>}</div>;
 }
+function KickedOutScreen({ quizTitle }: { quizTitle?: string }) {
+  return <PageFrame><main className="mx-auto max-w-lg px-5 py-12 sm:py-20"><div className="surface rounded-[1.6rem] p-7 text-center sm:p-10" data-testid="screen-kicked-out"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[hsl(var(--destructive)/.1)] text-[hsl(var(--destructive))]"><UserX className="size-7" /></span><p className="mt-7 text-xs font-bold uppercase tracking-[.15em] text-[hsl(var(--destructive))]">Removed from room</p><h1 className="mt-3 font-display text-3xl font-bold tracking-[-.05em]">You have been kicked out.</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{quizTitle ? `The host removed you from “${quizTitle}”.` : 'The host removed you from this quiz room.'} You can no longer submit answers here.</p><Link href="/" className="focus-ring mt-7 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--secondary))] px-4 py-3 text-sm font-bold" data-testid="link-kicked-home">Join another quiz <ArrowRight className="size-4" /></Link></div></main></PageFrame>;
+}
+function RoomNotAcceptingScreen({ quizTitle }: { quizTitle?: string }) {
+  return <PageFrame><main className="mx-auto max-w-lg px-5 py-12 sm:py-20"><div className="surface rounded-[1.6rem] p-7 text-center sm:p-10" data-testid="screen-room-not-accepting"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><Ban className="size-7" /></span><p className="mt-7 text-xs font-bold uppercase tracking-[.15em] text-[hsl(var(--primary))]">Joins are closed</p><h1 className="mt-3 font-display text-3xl font-bold tracking-[-.05em]">This room is not accepting players.</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">{quizTitle ? `The host has frozen joins for “${quizTitle}”.` : 'The host has frozen joins for this quiz.'} Ask your teacher to allow new players before trying again.</p><Link href="/" className="focus-ring mt-7 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--secondary))] px-4 py-3 text-sm font-bold" data-testid="link-closed-room-home">Back to join <ArrowLeft className="size-4" /></Link></div></main></PageFrame>;
+}
+function SuspendedScreen() {
+  return <PageFrame><main className="mx-auto max-w-lg px-5 py-12 sm:py-20"><div className="surface rounded-[1.6rem] p-7 text-center sm:p-10" data-testid="screen-teacher-suspended"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[hsl(var(--destructive)/.1)] text-[hsl(var(--destructive))]"><ShieldCheck className="size-7" /></span><p className="mt-7 text-xs font-bold uppercase tracking-[.15em] text-[hsl(var(--destructive))]">Access suspended</p><h1 className="mt-3 font-display text-3xl font-bold tracking-[-.05em]">You have been suspended.</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Your teacher account has been suspended by a moderator. You have been signed out and cannot access the teacher workspace.</p><Link href="/" className="focus-ring mt-7 inline-flex items-center gap-2 rounded-xl bg-[hsl(var(--secondary))] px-4 py-3 text-sm font-bold" data-testid="link-suspended-home">Back to quickquiz <ArrowLeft className="size-4" /></Link></div></main></PageFrame>;
+}
+function apiErrorCode(error: unknown) {
+  if (!error || typeof error !== 'object') return undefined;
+  const data = (error as { data?: unknown }).data;
+  return data && typeof data === 'object' && typeof (data as { code?: unknown }).code === 'string' ? (data as { code: string }).code : undefined;
+}
+function isTeacherSuspended(error: unknown) {
+  return apiErrorCode(error) === 'TEACHER_SUSPENDED';
+}
+function isRoomNotAccepting(error: unknown) {
+  return apiErrorCode(error) === 'ROOM_NOT_ACCEPTING';
+}
 
 function formatCountdown(seconds: number) {
   return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
@@ -286,6 +306,8 @@ function PlayPage() {
   const submitAnswer = useSubmitAnswer();
   const [name, setName] = useState('');
   const [participantId, setParticipantId] = useState('');
+  const [participantConfirmed, setParticipantConfirmed] = useState(false);
+  const [joinClosed, setJoinClosed] = useState(false);
   const [selected, setSelected] = useState<number | null>(null);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [now, setNow] = useState(() => Date.now());
@@ -300,6 +322,8 @@ function PlayPage() {
     : null;
   const hasAnswered = answers[current] !== undefined;
   const isTimeUp = remainingSeconds !== null && remainingSeconds === 0;
+  const isPresent = Boolean(participantId && session?.participants.some((participant) => participant.id === participantId));
+  const wasKicked = participantConfirmed && Boolean(participantId) && !isPresent;
 
   useEffect(() => {
     if (!session?.questionStartedAt || !timeLimit || session.status !== 'LIVE') return;
@@ -308,11 +332,21 @@ function PlayPage() {
     return () => window.clearInterval(timer);
   }, [session?.questionStartedAt, session?.status, timeLimit]);
   useEffect(() => setSelected(null), [current]);
+  useEffect(() => {
+    if (isPresent) setParticipantConfirmed(true);
+  }, [isPresent]);
 
   const onJoin = (event: FormEvent) => {
     event.preventDefault();
     if (!name.trim()) return;
-    joinQuiz.mutate({ code, data: { name: name.trim() } }, { onSuccess: (participant) => setParticipantId(participant.id) });
+    joinQuiz.mutate({ code, data: { name: name.trim() } }, { onSuccess: (participant) => {
+      setParticipantId(participant.id);
+      setParticipantConfirmed(true);
+      setJoinClosed(false);
+      client.setQueryData<QuizSession>(getGetQuizSessionQueryKey(code), (currentSession) => currentSession
+        ? { ...currentSession, participantCount: currentSession.participantCount + 1, participants: [...currentSession.participants, participant] }
+        : currentSession);
+    }, onError: (error) => { if (isRoomNotAccepting(error)) setJoinClosed(true); } });
   };
   const onAnswer = () => {
     if (selected === null || !question || !participantId || hasAnswered || isTimeUp) return;
@@ -326,7 +360,9 @@ function PlayPage() {
   };
   if (sessionQuery.isLoading) return <PageFrame><main className="mx-auto max-w-2xl px-5 py-16"><LoadingState /></main></PageFrame>;
   if (sessionQuery.isError || !session) return <PageFrame><main className="mx-auto max-w-2xl px-5 py-16"><ErrorState message="That quiz code is not active." retry={() => sessionQuery.refetch()} /></main></PageFrame>;
+  if (wasKicked) return <KickedOutScreen quizTitle={session.quizTitle} />;
   if (session.status === 'PAUSED') return <PageFrame><main className="mx-auto max-w-lg px-5 py-12 sm:py-20"><div className="surface rounded-[1.6rem] p-7 text-center sm:p-10"><span className="mx-auto grid size-14 place-items-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><Pause className="size-6" /></span><p className="mt-7 text-xs font-bold uppercase tracking-[.15em] text-[hsl(var(--primary))]">Room paused</p><h1 className="mt-3 font-display text-3xl font-bold tracking-[-.05em]">{session.quizTitle}</h1><p className="mt-3 text-sm leading-6 text-[hsl(var(--muted-foreground))]">Your moderator has paused this room. Stay on this page and the quiz will continue when it resumes.</p><div className="mt-7 flex items-center justify-center gap-2 rounded-xl bg-[hsl(var(--muted)/.6)] px-4 py-3 text-sm font-semibold text-[hsl(var(--muted-foreground))]"><span className="size-2 animate-pulse rounded-full bg-[hsl(var(--accent))]" /> Waiting for the room to resume</div></div></main></PageFrame>;
+  if (session.status === 'LOBBY' && (session.joinFrozen || joinClosed) && !isJoined) return <RoomNotAcceptingScreen quizTitle={session.quizTitle} />;
   if (!isJoined) return <PageFrame><main className="mx-auto max-w-lg px-5 py-10 sm:py-20"><div className="mb-6 flex items-center justify-between"><span className="font-mono text-xs font-bold tracking-[.18em] text-[hsl(var(--muted-foreground))]">{code}</span><span className="inline-flex items-center gap-1.5 text-xs font-bold text-[hsl(var(--primary))]"><span className="size-2 rounded-full bg-[hsl(var(--accent))]" /> Room found</span></div><div className="surface rounded-[1.6rem] p-6 sm:p-9"><span className="grid size-12 place-items-center rounded-2xl bg-[hsl(var(--secondary))] text-[hsl(var(--primary))]"><Users className="size-5" /></span><h1 className="mt-6 font-display text-3xl font-bold tracking-[-.05em]">{session.quizTitle}</h1><p className="mt-2 text-sm leading-6 text-[hsl(var(--muted-foreground))]">You are joining a live classroom. Pick a name your teacher will recognize.</p><form className="mt-8 space-y-4" onSubmit={onJoin} data-testid="form-join-session"><Field label="Your name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Sam Lee" autoFocus data-testid="input-student-name" /><Button className="w-full" type="submit" disabled={joinQuiz.isPending} data-testid="button-enter-room">{joinQuiz.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />} Enter room</Button></form>{joinQuiz.isError && <p className="mt-4 text-sm font-semibold text-[hsl(var(--destructive))]" data-testid="status-join-error">Could not join this room. Check your name and try again.</p>}</div></main></PageFrame>;
   if (session.status === 'LOBBY') return <PageFrame><main className="mx-auto max-w-2xl px-5 py-10 sm:py-20"><div className="surface overflow-hidden rounded-[1.6rem]"><div className="bg-[hsl(var(--sidebar))] p-7 text-[hsl(var(--sidebar-foreground))] sm:p-10"><div className="flex items-center justify-between"><span className="font-mono text-xs tracking-[.2em] text-[hsl(var(--sidebar-foreground)/.65)]">{code}</span><span className="inline-flex items-center gap-2 text-xs font-bold"><span className="size-2 animate-pulse rounded-full bg-[hsl(var(--accent))]" /> Waiting room</span></div><h1 className="mt-12 max-w-md font-display text-4xl font-bold leading-none tracking-[-.06em] sm:text-5xl">You are in.<br /><span className="text-[hsl(var(--accent))]">Stay curious.</span></h1></div><div className="p-7 sm:p-10"><div className="flex items-center justify-between"><div><p className="text-xs font-bold uppercase tracking-[.14em] text-[hsl(var(--muted-foreground))]">Playing as</p><p className="mt-1 text-lg font-bold" data-testid="text-student-name">{name}</p></div><span className="grid size-11 place-items-center rounded-full bg-[hsl(var(--secondary))] font-display font-bold text-[hsl(var(--primary))]">{name.slice(0, 1).toUpperCase()}</span></div><div className="mt-8 flex items-center gap-3 rounded-xl bg-[hsl(var(--muted)/.6)] p-4 text-sm text-[hsl(var(--muted-foreground))]"><Radio className="size-4 shrink-0 text-[hsl(var(--accent))]" /> Your teacher will start the first question soon.</div><div className="mt-6 flex items-center justify-between text-xs font-semibold text-[hsl(var(--muted-foreground))]"><span>{session.participantCount} players in room</span><span>Keep this tab open</span></div></div></div></main></PageFrame>;
   if (session.status === 'COMPLETE' || !question) return <ResultsScreen session={session} participantId={participantId} answers={answers} />;
@@ -349,7 +385,9 @@ function LoginPage({ kind }: { kind: 'teacher' | 'moderator' }) {
   const [, setLocation] = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const submit = (event: FormEvent) => { event.preventDefault(); login.mutate({ data: { email, password } }, { onSuccess: () => setLocation(kind === 'teacher' ? '/teacher' : '/moderator') }); };
+  const [suspended, setSuspended] = useState(() => kind === 'teacher' && new URLSearchParams(window.location.search).get('reason') === 'suspended');
+  const submit = (event: FormEvent) => { event.preventDefault(); login.mutate({ data: { email, password } }, { onSuccess: () => setLocation(kind === 'teacher' ? '/teacher' : '/moderator'), onError: (error) => { if (kind === 'teacher' && isTeacherSuspended(error)) setSuspended(true); } }); };
+  if (suspended) return <SuspendedScreen />;
   return <AuthLayout kind={kind} eyebrow={kind === 'teacher' ? 'Teacher access' : 'Moderator access'} title={kind === 'teacher' ? 'Welcome back.' : 'Keep the standard high.'} copy={kind === 'teacher' ? 'Sign in to build quizzes, host a room, and see how your class is tracking.' : 'Review applications and protect the quality of every classroom on quickquiz.'}><form onSubmit={submit} className="space-y-5" data-testid={`form-${kind}-login`}><Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@school.org" data-testid="input-email" /><Field label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 8 characters" data-testid="input-password" /><Button className="mt-2 w-full" type="submit" disabled={login.isPending} data-testid="button-submit-login">{login.isPending ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />} Sign in</Button>{login.isError && <p className="text-sm font-semibold text-[hsl(var(--destructive))]" data-testid="status-login-error">We couldn't sign you in. Check your details and try again.</p>}</form><div className="mt-7 flex flex-wrap items-center justify-between gap-3 text-sm"><Link href={kind === 'teacher' ? '/apply' : '/'} className="focus-ring font-semibold text-[hsl(var(--primary))] hover:underline" data-testid="link-auth-secondary">{kind === 'teacher' ? 'Not a teacher yet? Apply' : 'Back to student join'}</Link>{kind === 'teacher' && <Link href="/teacher/register" className="focus-ring font-semibold text-[hsl(var(--muted-foreground))] hover:text-foreground" data-testid="link-register">Have a registration key?</Link>}</div></AuthLayout>;
 }
 
@@ -765,11 +803,13 @@ function NotFound() { return <PageFrame><TopNav /><main className="mx-auto max-w
 function RoleGuard({ role, children }: { role: 'TEACHER' | 'MODERATOR'; children: ReactNode }) {
   const [, setLocation] = useLocation();
   const userQuery = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false, refetchOnMount: 'always' } });
+  const suspended = role === 'TEACHER' && isTeacherSuspended(userQuery.error);
   useEffect(() => {
     if (userQuery.isError || (userQuery.data && userQuery.data.role !== role)) {
-      setLocation(role === 'MODERATOR' ? '/moderator/login' : '/teacher/login');
+      setLocation(role === 'MODERATOR' ? '/moderator/login' : suspended ? '/teacher/login?reason=suspended' : '/teacher/login');
     }
-  }, [role, setLocation, userQuery.data, userQuery.isError]);
+  }, [role, setLocation, userQuery.data, userQuery.isError, suspended]);
+  if (suspended) return <SuspendedScreen />;
   if (userQuery.isLoading || !userQuery.data || userQuery.data.role !== role) {
     return <PageFrame><main className="mx-auto max-w-2xl px-5 py-16"><LoadingState label="Checking your access" /></main></PageFrame>;
   }
