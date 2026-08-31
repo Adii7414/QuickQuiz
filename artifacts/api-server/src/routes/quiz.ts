@@ -84,6 +84,23 @@ function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.
     : undefined;
   return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
 }
+function automaticAdvanceReady(row: typeof sessions.$inferSelect, quiz: typeof quizzes.$inferSelect) {
+  if (row.status !== "LIVE" || !quiz.timeLimitSeconds || !row.questionStartedAt) return false;
+  const currentQuestion = row.currentQuestion ?? 0;
+  const people = (row.participants as Array<{ answers?: number[] }>) || [];
+  const timeExpired = Date.now() >= row.questionStartedAt.getTime() + quiz.timeLimitSeconds * 1000;
+  const everyoneAnswered = people.length > 0 && people.every((person) => typeof person.answers?.[currentQuestion] === "number");
+  return timeExpired || everyoneAnswered;
+}
+async function autoAdvanceSession(row: typeof sessions.$inferSelect, quiz: typeof quizzes.$inferSelect) {
+  if (!automaticAdvanceReady(row, quiz)) return row;
+  const currentQuestion = row.currentQuestion ?? 0;
+  const lastQuestion = currentQuestion >= (quiz.questions as unknown[]).length - 1;
+  const update = lastQuestion
+    ? { status: "COMPLETE", questionStartedAt: null }
+    : { currentQuestion: currentQuestion + 1, questionStartedAt: new Date() };
+  return (await db.update(sessions).set(update).where(and(eq(sessions.code, row.code), eq(sessions.status, "LIVE"), eq(sessions.currentQuestion, currentQuestion))).returning())[0] ?? row;
+}
 async function publicModerationSession(row: typeof sessions.$inferSelect) {
   const [quiz, teacher] = await Promise.all([
     db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1),
@@ -321,7 +338,8 @@ router.get("/sessions/:code", async (req, res) => {
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Quiz session not found" });
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
-  return res.json(publicSession(row, quiz));
+  const currentRow = quiz ? await autoAdvanceSession(row, quiz) : row;
+  return res.json(publicSession(currentRow, quiz));
 });
 router.post("/sessions/:code", async (req, res) => {
   const code = String(req.params.code).toUpperCase();
@@ -416,6 +434,7 @@ router.post("/sessions/:code/answers", async (req, res) => {
   participantWithAnswers.answers = [...(participantWithAnswers.answers ?? [])];
   participantWithAnswers.answers[Number(questionIndex)] = Number(answerIndex);
   await db.update(sessions).set({ participants: people }).where(eq(sessions.code, row.code));
+  await autoAdvanceSession({ ...row, participants: people }, quiz);
   return res.json({ ...person, percentage: Math.round((person.score / questions.length) * 100) });
 });
 
