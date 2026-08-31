@@ -190,11 +190,13 @@ function PageFrame({ children, className = '' }: { children: ReactNode; classNam
 }
 
 function TopNav({ teacher = false }: { teacher?: boolean }) {
+  const userQuery = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false, staleTime: 30000 } });
+  const teacherLoggedIn = userQuery.data?.role === 'TEACHER';
   return (
     <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-10">
       <Logo />
-      <nav className="flex items-center gap-1.5 sm:gap-3">
-        {teacher ? (
+      <nav className="flex items-center gap-1.5 sm:gap-3" aria-label="Public navigation">
+        {teacherLoggedIn ? <Link href="/teacher" className="focus-ring inline-flex items-center rounded-lg px-3 py-2 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))]" data-testid="link-teacher-workspace">Teacher workspace</Link> : teacher ? (
           <>
             <Link href="/apply" className="focus-ring hidden rounded-lg px-3 py-2 text-sm font-semibold text-[hsl(var(--muted-foreground))] hover:text-foreground sm:inline-flex" data-testid="link-apply">Become a teacher</Link>
             <Link href="/teacher/login" className="focus-ring inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-[hsl(var(--primary))] hover:bg-[hsl(var(--muted))]" data-testid="link-teacher-login"><LogIn className="size-4" /> Teacher sign in</Link>
