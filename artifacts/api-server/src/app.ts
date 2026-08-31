@@ -7,6 +7,11 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
+// The frontend fetch wrapper treats 304 as an empty response. API responses
+// therefore must not be revalidated into a body-less 304, especially for
+// /auth/me where that would look like a logged-out user.
+app.disable("etag");
+
 app.use(
   pinoHttp({
     logger,
