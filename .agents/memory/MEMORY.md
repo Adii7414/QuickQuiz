@@ -1,1 +1,2 @@
 - [Secure quiz platform](secure-quiz-platform.md) — teacher access is approval-gated with short-lived, single-use hashed registration keys.
+- [Imported artifact registration](imported-artifact-registration.md) — imported artifact folders may need bootstrap registration before managed workflows and previews are available.
