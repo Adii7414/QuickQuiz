@@ -150,3 +150,76 @@ button[data-testid="button-teacher-freeze-session"]:hover,
 button[data-testid^="button-freeze-session-"]:hover {
   background: hsl(var(--primary-foreground) / .2);
 }
+
+.live-room-fullscreen {
+  min-height: 100dvh;
+  background: hsl(var(--primary));
+}
+
+.live-room-fullscreen [data-testid="panel-live-room"] {
+  min-height: 100dvh;
+  margin-top: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+@media (max-width: 639px) {
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child {
+    gap: 1.25rem;
+    padding: 1rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:first-child {
+    min-width: 0;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:first-child h2 {
+    overflow-wrap: anywhere;
+    font-size: 1.35rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .5rem;
+    width: 100%;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button:not([aria-label]) {
+    width: 100%;
+    min-width: 0;
+    justify-content: center;
+    padding-inline: .65rem;
+    font-size: .75rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button[aria-label] {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
+
+  .live-room-fullscreen button[data-testid="button-teacher-freeze-session"] {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div {
+    min-width: 0;
+    padding: 1rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div p:last-child {
+    overflow-wrap: anywhere;
+    font-size: 1.35rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(3),
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(4) {
+    padding: 1rem;
+  }
+}
