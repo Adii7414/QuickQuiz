@@ -449,6 +449,11 @@ export const CreateQuizResponse = zod.object({
 }))
 
 
+export const GetTeacherStatsResponse = zod.object({
+  "roomsHosted": zod.number()
+})
+
+
 export const UpdateQuizParams = zod.object({
   "id": zod.coerce.string()
 })

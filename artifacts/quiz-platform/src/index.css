@@ -152,18 +152,47 @@ button[data-testid^="button-freeze-session-"]:hover {
 }
 
 .live-room-fullscreen {
+  display: flex;
   min-height: 100dvh;
-  background: hsl(var(--primary));
+  padding: .75rem;
+  background: hsl(var(--background));
 }
 
 .live-room-fullscreen [data-testid="panel-live-room"] {
-  min-height: 100dvh;
+  width: 100%;
+  min-height: 0;
+  max-width: 72rem;
   margin-top: 0;
-  border: 0;
-  border-radius: 0;
+  margin-inline: auto;
+  border: 1px solid hsl(var(--primary) / .25);
+  border-radius: 1.5rem;
+  box-shadow: var(--shadow-lg);
+}
+
+.live-room-fullscreen [data-testid="panel-live-room"] button[aria-label="Close live room"] {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .55rem .75rem;
+  border: 1px solid hsl(var(--primary-foreground) / .22);
+  background: hsl(var(--primary-foreground) / .08);
+}
+
+.live-room-fullscreen [data-testid="panel-live-room"] button[aria-label="Close live room"]::after {
+  content: "Exit room";
+  font-size: .75rem;
+  font-weight: 700;
 }
 
 @media (max-width: 639px) {
+  .live-room-fullscreen {
+    padding: .5rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] {
+    border-radius: 1.25rem;
+  }
+
   .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child {
     gap: 1.25rem;
     padding: 1rem;
@@ -210,12 +239,21 @@ button[data-testid^="button-freeze-session-"]:hover {
 
   .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div {
     min-width: 0;
-    padding: 1rem;
+    padding: .8rem .65rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div p:last-child {
     overflow-wrap: anywhere;
-    font-size: 1.35rem;
+    font-size: 1.3rem;
+  }
+
+  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div p:first-child {
+    font-size: .62rem;
+    letter-spacing: .1em;
   }
 
   .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(3),

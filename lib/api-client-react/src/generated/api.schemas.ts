@@ -9,6 +9,10 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface TeacherStats {
+  roomsHosted: number;
+}
+
 export interface LoginInput {
   email: string;
   /** @minLength 8 */

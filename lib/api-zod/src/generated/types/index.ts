@@ -51,6 +51,7 @@ export * from './teacherApplication';
 export * from './teacherApplicationInput';
 export * from './teacherApplicationStatus';
 export * from './teacherRegistrationInput';
+export * from './teacherStats';
 export * from './teacherStatusInput';
 export * from './teacherStatusInputStatus';
 export * from './teacherSummary';

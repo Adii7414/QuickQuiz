@@ -62,6 +62,7 @@ import {
   useGetTeacherApplication,
   useGetQuizSession,
   useGetQuizSessionResults,
+  useGetTeacherStats,
   useGetRegistrationKey,
   useHostQuiz,
   useJoinQuizSession,
@@ -85,6 +86,7 @@ import {
   useUpdateModeratorUserStatus,
   getGetQuizSessionQueryKey,
   getGetQuizSessionResultsQueryKey,
+  getGetTeacherStatsQueryKey,
   getGetCurrentUserQueryKey,
   getGetTeacherApplicationQueryKey,
   getGetRegistrationKeyQueryKey,
@@ -502,6 +504,7 @@ function LegacyTeacherDashboard() {
 function TeacherDashboard() {
   const quizQuery = useListQuizzes({ query: { queryKey: getListQuizzesQueryKey(), refetchOnMount: 'always' } });
   const userQuery = useGetCurrentUser({ query: { queryKey: getGetCurrentUserQueryKey(), retry: false, staleTime: 30000, refetchOnWindowFocus: false } });
+  const statsQuery = useGetTeacherStats({ query: { queryKey: getGetTeacherStatsQueryKey(), refetchOnMount: 'always', staleTime: 30000 } });
   const logout = useLogout();
   const [, setLocation] = useLocation();
   const quizzes = quizQuery.data ?? [];
@@ -511,7 +514,7 @@ function TeacherDashboard() {
         <div><div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[hsl(var(--secondary))] px-3 py-1.5 text-xs font-bold text-[hsl(var(--primary))]"><span className="size-1.5 rounded-full bg-[hsl(var(--accent))]" /> Your control room</div><h1 className="font-display text-4xl font-bold tracking-[-.06em] sm:text-5xl">Good morning, {userQuery.data?.name ?? 'there'}.</h1><p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">Your classroom is ready when you are.</p></div>
         <Button onClick={() => setLocation('/teacher/quizzes?new=1')} data-testid="button-create-quiz"><Plus className="size-4" /> New quiz</Button>
       </div>
-      <div className="mt-9 grid gap-3 sm:grid-cols-3"><Stat label="Your quizzes" value={String(quizzes.length).padStart(2, '0')} icon={BookOpen} /><Stat label="Questions written" value={String(quizzes.reduce((sum, quiz) => sum + quiz.questionCount, 0)).padStart(2, '0')} icon={ClipboardCheck} /><Stat label="Rooms hosted" value="07" icon={Radio} /></div>
+      <div className="mt-9 grid gap-3 sm:grid-cols-3"><Stat label="Your quizzes" value={String(quizzes.length).padStart(2, '0')} icon={BookOpen} /><Stat label="Questions written" value={String(quizzes.reduce((sum, quiz) => sum + quiz.questionCount, 0)).padStart(2, '0')} icon={ClipboardCheck} /><Stat label="Rooms hosted" value={statsQuery.isLoading ? '—' : String(statsQuery.data?.roomsHosted ?? 0).padStart(2, '0')} icon={Radio} /></div>
       <Link href="/teacher/quizzes" className="surface surface-hover mt-10 flex items-center justify-between gap-4 rounded-2xl p-5 sm:p-6" data-testid="link-overview-quizzes">
         <span className="min-w-0"><span className="block font-display text-xl font-bold tracking-[-.04em]">Manage your quizzes</span><span className="mt-1 block text-sm text-[hsl(var(--muted-foreground))]">Draft, edit, and send one live from the Quizzes section.</span></span>
         <ArrowRight className="size-5 shrink-0 text-[hsl(var(--primary))]" />
@@ -537,7 +540,6 @@ function QuizzesPage() {
         <div><p className="text-xs font-bold uppercase tracking-[.14em] text-[hsl(var(--primary))]">Quiz library</p><h1 className="mt-2 font-display text-4xl font-bold tracking-[-.06em] sm:text-5xl">Make a moment.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">Draft, edit, and send one live. Your question banks stay ready in their own workspace.</p></div>
         <Button onClick={() => setEditor('new')} data-testid="button-create-quiz"><Plus className="size-4" /> New quiz</Button>
       </div>
-      <div className="mt-9 grid gap-3 sm:grid-cols-3"><Stat label="Your quizzes" value={String(quizzes.length).padStart(2, '0')} icon={BookOpen} /><Stat label="Questions written" value={String(quizzes.reduce((sum, quiz) => sum + quiz.questionCount, 0)).padStart(2, '0')} icon={ClipboardCheck} /><Stat label="Ready to host" value={String(quizzes.length).padStart(2, '0')} icon={Radio} /></div>
       <div className="mt-10 flex items-center justify-between gap-4"><div><h2 className="font-display text-xl font-bold tracking-[-.04em]">Your quizzes</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Only you can edit these quiz rooms.</p></div><button aria-label="Refresh quizzes" onClick={() => quizQuery.refetch()} className="focus-ring rounded-lg p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--muted))]" data-testid="button-refresh-quizzes"><RefreshCw className="size-4" /></button></div>
       <div className="mt-4">{quizQuery.isLoading ? <LoadingState label="Loading your quizzes" /> : quizQuery.isError ? <ErrorState retry={() => quizQuery.refetch()} /> : quizzes.length === 0 ? <EmptyQuizzes onCreate={() => setEditor('new')} /> : <div className="grid gap-3">{quizzes.map((quiz) => <QuizRow key={quiz.id} quiz={quiz} onEdit={() => setEditor(quiz)} onDelete={() => setQuizToDelete(quiz)} onHost={() => setLocation(`/teacher/host?quiz=${encodeURIComponent(quiz.id)}`)} deleting={deleteQuiz.isPending} />)}</div>}</div>
     </div>

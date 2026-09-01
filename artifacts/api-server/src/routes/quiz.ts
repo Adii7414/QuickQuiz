@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
-import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
 import { db, applications, questionBanks, quizzes, registrationKeys, sessions, users } from "@workspace/db";
 
 const router: IRouter = Router();
@@ -337,6 +337,11 @@ router.get("/quizzes", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
   const rows = await db.select().from(quizzes).where(eq(quizzes.teacherId, current.userId)).orderBy(desc(quizzes.updatedAt));
   return res.json(rows.map(publicQuiz));
+});
+router.get("/teacher/stats", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const [result] = await db.select({ roomsHosted: count(sessions.code) }).from(sessions).where(eq(sessions.teacherId, current.userId));
+  return res.json({ roomsHosted: Number(result?.roomsHosted ?? 0) });
 });
 router.post("/quizzes", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;

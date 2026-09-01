@@ -46,6 +46,7 @@ import type {
   TeacherApplication,
   TeacherApplicationInput,
   TeacherRegistrationInput,
+  TeacherStats,
   TeacherStatusInput,
   TeacherSummary
 } from './api.schemas';
@@ -1390,6 +1391,77 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       > => {
       return useMutation(getCreateQuizMutationOptions(options));
     }
+
+export const getGetTeacherStatsUrl = () => {
+
+
+
+
+  return `/api/teacher/stats`
+}
+
+export const getTeacherStats = async ( options?: Parameters<typeof customFetch>[1]): Promise<TeacherStats> => {
+
+  return customFetch<TeacherStats>(getGetTeacherStatsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTeacherStatsQueryKey = () => {
+    return [
+    `/api/teacher/stats`
+    ] as const;
+    }
+
+
+export const getGetTeacherStatsQueryOptions = <TData = Awaited<ReturnType<typeof getTeacherStats>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTeacherStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTeacherStatsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTeacherStats>>> = ({ signal }) => getTeacherStats({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTeacherStats>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTeacherStatsQueryResult = NonNullable<Awaited<ReturnType<typeof getTeacherStats>>>
+export type GetTeacherStatsQueryError = ErrorType<void>
+
+
+
+export function useGetTeacherStats<TData = Awaited<ReturnType<typeof getTeacherStats>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTeacherStats>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTeacherStatsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getUpdateQuizUrl = (id: string,) => {
 

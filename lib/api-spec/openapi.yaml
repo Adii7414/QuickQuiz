@@ -314,6 +314,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Quiz"
+  /teacher/stats:
+    get:
+      operationId: getTeacherStats
+      tags: [quizzes]
+      responses:
+        "200":
+          description: Teacher dashboard statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeacherStats"
+        "403": { description: Teacher access required }
   /quizzes/{id}:
     patch:
       operationId: updateQuiz
@@ -506,6 +518,11 @@ components:
           type: string
       required:
         - status
+    TeacherStats:
+      type: object
+      required: [roomsHosted]
+      properties:
+        roomsHosted: { type: number }
     LoginInput:
       type: object
       required: [email, password]
