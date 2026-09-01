@@ -340,6 +340,61 @@ paths:
         - { name: id, in: path, required: true, schema: { type: string } }
       responses:
         "204": { description: Deleted }
+  /question-banks:
+    get:
+      operationId: listQuestionBanks
+      tags: [question-banks]
+      responses:
+        "200":
+          description: Teacher question banks
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/QuestionBank" }
+        "403": { description: Teacher access required }
+    post:
+      operationId: createQuestionBank
+      tags: [question-banks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionBankInput"
+      responses:
+        "201":
+          description: Created question bank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionBank"
+  /question-banks/{id}:
+    patch:
+      operationId: updateQuestionBank
+      tags: [question-banks]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionBankInput"
+      responses:
+        "200":
+          description: Updated question bank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QuestionBank"
+    delete:
+      operationId: deleteQuestionBank
+      tags: [question-banks]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
   /quizzes/{id}/host:
     post:
       operationId: hostQuiz
@@ -579,6 +634,10 @@ components:
             properties:
               answered: { type: number }
               correct: { type: number }
+              accuracy: { type: number }
+              answerCounts:
+                type: array
+                items: { type: number }
         participants:
           type: array
           items: { $ref: "#/components/schemas/ModerationSessionParticipant" }
@@ -586,8 +645,9 @@ components:
       type: object
       required: [action]
       properties:
-        action: { type: string, enum: [END, PAUSE, RESUME, FREEZE_JOINS, UNFREEZE_JOINS, REMOVE_PARTICIPANT] }
+        action: { type: string, enum: [END, PAUSE, RESUME, FREEZE_JOINS, UNFREEZE_JOINS, REMOVE_PARTICIPANT, SKIP_QUESTION, RESTART_QUESTION, EXTEND_TIME] }
         participantId: { type: string }
+        seconds: { type: number, minimum: 5, maximum: 120 }
     ModerationUser:
       type: object
       required: [id, name, email, role, status, createdAt]
@@ -633,6 +693,25 @@ components:
             id: { type: string }
             questionCount: { type: number }
             updatedAt: { type: string }
+    QuestionBankInput:
+      type: object
+      required: [name, description, questions]
+      properties:
+        name: { type: string, minLength: 2 }
+        description: { type: string }
+        questions:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/QuestionInput" }
+    QuestionBank:
+      allOf:
+        - $ref: "#/components/schemas/QuestionBankInput"
+        - type: object
+          required: [id, questionCount, updatedAt]
+          properties:
+            id: { type: string }
+            questionCount: { type: number }
+            updatedAt: { type: string }
     QuizSession:
       type: object
       required: [code, status, quizTitle, participantCount, joinFrozen, participants]
@@ -652,6 +731,10 @@ components:
             properties:
               answered: { type: number }
               correct: { type: number }
+              accuracy: { type: number }
+              answerCounts:
+                type: array
+                items: { type: number }
         participants:
           type: array
           items: { $ref: "#/components/schemas/Participant" }
@@ -719,6 +802,10 @@ components:
             properties:
               answered: { type: number }
               correct: { type: number }
+              accuracy: { type: number }
+              answerCounts:
+                type: array
+                items: { type: number }
         totalParticipants: { type: number }
         completedParticipants: { type: number }
         averagePercentage: { type: number }
@@ -726,4 +813,13 @@ components:
         lowestPercentage: { type: number }
         totalAnswers: { type: number }
         correctAnswers: { type: number }
+        medianPercentage: { type: number }
+        scoreDistribution:
+          type: array
+          items:
+            type: object
+            required: [label, count]
+            properties:
+              label: { type: string }
+              count: { type: number }
 

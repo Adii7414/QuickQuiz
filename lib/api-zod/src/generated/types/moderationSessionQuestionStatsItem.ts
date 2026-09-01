@@ -9,4 +9,6 @@
 export type ModerationSessionQuestionStatsItem = {
   answered: number;
   correct: number;
+  accuracy?: number;
+  answerCounts?: number[];
 };

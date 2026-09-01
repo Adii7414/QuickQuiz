@@ -170,6 +170,8 @@ export type ModerationSessionLiveQuestion = {
 export type ModerationSessionQuestionStatsItem = {
   answered: number;
   correct: number;
+  accuracy?: number;
+  answerCounts?: number[];
 };
 
 export interface ModerationSession {
@@ -198,11 +200,19 @@ export const ModerationActionInputAction = {
   FREEZE_JOINS: 'FREEZE_JOINS',
   UNFREEZE_JOINS: 'UNFREEZE_JOINS',
   REMOVE_PARTICIPANT: 'REMOVE_PARTICIPANT',
+  SKIP_QUESTION: 'SKIP_QUESTION',
+  RESTART_QUESTION: 'RESTART_QUESTION',
+  EXTEND_TIME: 'EXTEND_TIME',
 } as const;
 
 export interface ModerationActionInput {
   action: ModerationActionInputAction;
   participantId?: string;
+  /**
+     * @minimum 5
+     * @maximum 120
+     */
+  seconds?: number;
 }
 
 export type ModerationUserRole = typeof ModerationUserRole[keyof typeof ModerationUserRole];
@@ -278,6 +288,20 @@ export type Quiz = QuizInput & {
   updatedAt: string;
 };
 
+export interface QuestionBankInput {
+  /** @minLength 2 */
+  name: string;
+  description: string;
+  /** @minItems 1 */
+  questions: QuestionInput[];
+}
+
+export type QuestionBank = QuestionBankInput & {
+  id: string;
+  questionCount: number;
+  updatedAt: string;
+};
+
 export type QuizSessionStatus = typeof QuizSessionStatus[keyof typeof QuizSessionStatus];
 
 
@@ -291,6 +315,8 @@ export const QuizSessionStatus = {
 export type QuizSessionQuestionStatsItem = {
   answered: number;
   correct: number;
+  accuracy?: number;
+  answerCounts?: number[];
 };
 
 export interface Participant {
@@ -348,6 +374,13 @@ export type QuizResultsParticipantsItem = {
 export type QuizResultsQuestionStatsItem = {
   answered: number;
   correct: number;
+  accuracy?: number;
+  answerCounts?: number[];
+};
+
+export type QuizResultsScoreDistributionItem = {
+  label: string;
+  count: number;
 };
 
 export interface QuizResults {
@@ -363,6 +396,8 @@ export interface QuizResults {
   lowestPercentage: number;
   totalAnswers: number;
   correctAnswers: number;
+  medianPercentage?: number;
+  scoreDistribution?: QuizResultsScoreDistributionItem[];
 }
 
 export type ListTeacherApplicationsParams = {

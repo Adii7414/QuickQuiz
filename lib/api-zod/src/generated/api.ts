@@ -260,7 +260,9 @@ export const ListModeratorSessionsResponseItem = zod.object({
 }).nullable(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -277,9 +279,15 @@ export const ModerateQuizSessionParams = zod.object({
   "code": zod.coerce.string()
 })
 
+export const moderateQuizSessionBodySecondsMin = 5;
+export const moderateQuizSessionBodySecondsMax = 120;
+
+
+
 export const ModerateQuizSessionBody = zod.object({
-  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT']),
-  "participantId": zod.string().optional()
+  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT', 'SKIP_QUESTION', 'RESTART_QUESTION', 'EXTEND_TIME']),
+  "participantId": zod.string().optional(),
+  "seconds": zod.number().min(moderateQuizSessionBodySecondsMin).max(moderateQuizSessionBodySecondsMax).optional()
 })
 
 export const ModerateQuizSessionResponse = zod.object({
@@ -301,7 +309,9 @@ export const ModerateQuizSessionResponse = zod.object({
 }).nullable(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -509,6 +519,153 @@ export const DeleteQuizParams = zod.object({
 export const DeleteQuizResponse = zod.void()
 
 
+export const listQuestionBanksResponseOneNameMin = 2;
+
+export const listQuestionBanksResponseOneQuestionsItemPromptMin = 2;
+
+
+export const listQuestionBanksResponseOneQuestionsItemAnswersMin = 4;
+export const listQuestionBanksResponseOneQuestionsItemAnswersMax = 4;
+
+export const listQuestionBanksResponseOneQuestionsItemCorrectIndexMin = 0;
+export const listQuestionBanksResponseOneQuestionsItemCorrectIndexMax = 3;
+
+
+
+
+export const ListQuestionBanksResponseItem = zod.object({
+  "name": zod.string().min(listQuestionBanksResponseOneNameMin),
+  "description": zod.string(),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(listQuestionBanksResponseOneQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(listQuestionBanksResponseOneQuestionsItemAnswersMin).max(listQuestionBanksResponseOneQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(listQuestionBanksResponseOneQuestionsItemCorrectIndexMin).max(listQuestionBanksResponseOneQuestionsItemCorrectIndexMax)
+})).min(1)
+}).and(zod.object({
+  "id": zod.string(),
+  "questionCount": zod.number(),
+  "updatedAt": zod.string()
+}))
+export const ListQuestionBanksResponse = zod.array(ListQuestionBanksResponseItem)
+
+
+export const createQuestionBankBodyNameMin = 2;
+
+export const createQuestionBankBodyQuestionsItemPromptMin = 2;
+
+
+export const createQuestionBankBodyQuestionsItemAnswersMin = 4;
+export const createQuestionBankBodyQuestionsItemAnswersMax = 4;
+
+export const createQuestionBankBodyQuestionsItemCorrectIndexMin = 0;
+export const createQuestionBankBodyQuestionsItemCorrectIndexMax = 3;
+
+
+
+
+export const CreateQuestionBankBody = zod.object({
+  "name": zod.string().min(createQuestionBankBodyNameMin),
+  "description": zod.string(),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(createQuestionBankBodyQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(createQuestionBankBodyQuestionsItemAnswersMin).max(createQuestionBankBodyQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(createQuestionBankBodyQuestionsItemCorrectIndexMin).max(createQuestionBankBodyQuestionsItemCorrectIndexMax)
+})).min(1)
+})
+
+export const createQuestionBankResponseOneNameMin = 2;
+
+export const createQuestionBankResponseOneQuestionsItemPromptMin = 2;
+
+
+export const createQuestionBankResponseOneQuestionsItemAnswersMin = 4;
+export const createQuestionBankResponseOneQuestionsItemAnswersMax = 4;
+
+export const createQuestionBankResponseOneQuestionsItemCorrectIndexMin = 0;
+export const createQuestionBankResponseOneQuestionsItemCorrectIndexMax = 3;
+
+
+
+
+export const CreateQuestionBankResponse = zod.object({
+  "name": zod.string().min(createQuestionBankResponseOneNameMin),
+  "description": zod.string(),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(createQuestionBankResponseOneQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(createQuestionBankResponseOneQuestionsItemAnswersMin).max(createQuestionBankResponseOneQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(createQuestionBankResponseOneQuestionsItemCorrectIndexMin).max(createQuestionBankResponseOneQuestionsItemCorrectIndexMax)
+})).min(1)
+}).and(zod.object({
+  "id": zod.string(),
+  "questionCount": zod.number(),
+  "updatedAt": zod.string()
+}))
+
+
+export const UpdateQuestionBankParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateQuestionBankBodyNameMin = 2;
+
+export const updateQuestionBankBodyQuestionsItemPromptMin = 2;
+
+
+export const updateQuestionBankBodyQuestionsItemAnswersMin = 4;
+export const updateQuestionBankBodyQuestionsItemAnswersMax = 4;
+
+export const updateQuestionBankBodyQuestionsItemCorrectIndexMin = 0;
+export const updateQuestionBankBodyQuestionsItemCorrectIndexMax = 3;
+
+
+
+
+export const UpdateQuestionBankBody = zod.object({
+  "name": zod.string().min(updateQuestionBankBodyNameMin),
+  "description": zod.string(),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(updateQuestionBankBodyQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(updateQuestionBankBodyQuestionsItemAnswersMin).max(updateQuestionBankBodyQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(updateQuestionBankBodyQuestionsItemCorrectIndexMin).max(updateQuestionBankBodyQuestionsItemCorrectIndexMax)
+})).min(1)
+})
+
+export const updateQuestionBankResponseOneNameMin = 2;
+
+export const updateQuestionBankResponseOneQuestionsItemPromptMin = 2;
+
+
+export const updateQuestionBankResponseOneQuestionsItemAnswersMin = 4;
+export const updateQuestionBankResponseOneQuestionsItemAnswersMax = 4;
+
+export const updateQuestionBankResponseOneQuestionsItemCorrectIndexMin = 0;
+export const updateQuestionBankResponseOneQuestionsItemCorrectIndexMax = 3;
+
+
+
+
+export const UpdateQuestionBankResponse = zod.object({
+  "name": zod.string().min(updateQuestionBankResponseOneNameMin),
+  "description": zod.string(),
+  "questions": zod.array(zod.object({
+  "prompt": zod.string().min(updateQuestionBankResponseOneQuestionsItemPromptMin),
+  "answers": zod.array(zod.string().min(1)).min(updateQuestionBankResponseOneQuestionsItemAnswersMin).max(updateQuestionBankResponseOneQuestionsItemAnswersMax),
+  "correctIndex": zod.number().min(updateQuestionBankResponseOneQuestionsItemCorrectIndexMin).max(updateQuestionBankResponseOneQuestionsItemCorrectIndexMax)
+})).min(1)
+}).and(zod.object({
+  "id": zod.string(),
+  "questionCount": zod.number(),
+  "updatedAt": zod.string()
+}))
+
+
+export const DeleteQuestionBankParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const DeleteQuestionBankResponse = zod.void()
+
+
 export const HostQuizParams = zod.object({
   "id": zod.coerce.string()
 })
@@ -539,7 +696,9 @@ export const HostQuizResponse = zod.object({
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -595,7 +754,9 @@ export const GetQuizSessionResponse = zod.object({
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -671,7 +832,9 @@ export const StartQuizSessionResponse = zod.object({
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -727,7 +890,9 @@ export const AdvanceQuizSessionResponse = zod.object({
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })).optional(),
   "participants": zod.array(zod.object({
   "id": zod.string(),
@@ -801,7 +966,9 @@ export const GetQuizSessionResultsResponse = zod.object({
 })),
   "questionStats": zod.array(zod.object({
   "answered": zod.number(),
-  "correct": zod.number()
+  "correct": zod.number(),
+  "accuracy": zod.number().optional(),
+  "answerCounts": zod.array(zod.number()).optional()
 })).optional(),
   "totalParticipants": zod.number(),
   "completedParticipants": zod.number(),
@@ -809,7 +976,12 @@ export const GetQuizSessionResultsResponse = zod.object({
   "highestPercentage": zod.number(),
   "lowestPercentage": zod.number(),
   "totalAnswers": zod.number(),
-  "correctAnswers": zod.number()
+  "correctAnswers": zod.number(),
+  "medianPercentage": zod.number().optional(),
+  "scoreDistribution": zod.array(zod.object({
+  "label": zod.string(),
+  "count": zod.number()
+})).optional()
 })
 
 

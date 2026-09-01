@@ -43,6 +43,16 @@ export const quizzes = pgTable("quizzes", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const questionBanks = pgTable("question_banks", {
+  id: text("id").primaryKey(),
+  teacherId: text("teacher_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description").notNull().default(""),
+  questions: jsonb("questions").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const sessions = pgTable("quiz_sessions", {
   code: text("code").primaryKey(),
   quizId: text("quiz_id").notNull(),

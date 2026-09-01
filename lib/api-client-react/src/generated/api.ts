@@ -35,6 +35,8 @@ import type {
   ModerationUser,
   ModerationUserStatusInput,
   Participant,
+  QuestionBank,
+  QuestionBankInput,
   Quiz,
   QuizInput,
   QuizResults,
@@ -1518,6 +1520,273 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteQuizMutationOptions(options));
+    }
+
+export const getListQuestionBanksUrl = () => {
+
+
+
+
+  return `/api/question-banks`
+}
+
+export const listQuestionBanks = async ( options?: Parameters<typeof customFetch>[1]): Promise<QuestionBank[]> => {
+
+  return customFetch<QuestionBank[]>(getListQuestionBanksUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListQuestionBanksQueryKey = () => {
+    return [
+    `/api/question-banks`
+    ] as const;
+    }
+
+
+export const getListQuestionBanksQueryOptions = <TData = Awaited<ReturnType<typeof listQuestionBanks>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQuestionBanks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListQuestionBanksQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listQuestionBanks>>> = ({ signal }) => listQuestionBanks({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listQuestionBanks>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListQuestionBanksQueryResult = NonNullable<Awaited<ReturnType<typeof listQuestionBanks>>>
+export type ListQuestionBanksQueryError = ErrorType<void>
+
+
+
+export function useListQuestionBanks<TData = Awaited<ReturnType<typeof listQuestionBanks>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listQuestionBanks>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListQuestionBanksQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateQuestionBankUrl = () => {
+
+
+
+
+  return `/api/question-banks`
+}
+
+export const createQuestionBank = async (questionBankInput: QuestionBankInput, options?: Parameters<typeof customFetch>[1]): Promise<QuestionBank> => {
+
+  return customFetch<QuestionBank>(getCreateQuestionBankUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(questionBankInput)
+  }
+);}
+
+
+
+
+
+export const getCreateQuestionBankMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createQuestionBank>>, TError,{data: BodyType<QuestionBankInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createQuestionBank>>, TError,{data: BodyType<QuestionBankInput>}, TContext> => {
+
+const mutationKey = ['createQuestionBank'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createQuestionBank>>, {data: BodyType<QuestionBankInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createQuestionBank(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateQuestionBankMutationResult = NonNullable<Awaited<ReturnType<typeof createQuestionBank>>>
+    export type CreateQuestionBankMutationBody = BodyType<QuestionBankInput>
+    export type CreateQuestionBankMutationError = ErrorType<unknown>
+
+    export const useCreateQuestionBank = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createQuestionBank>>, TError,{data: BodyType<QuestionBankInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createQuestionBank>>,
+        TError,
+        {data: BodyType<QuestionBankInput>},
+        TContext
+      > => {
+      return useMutation(getCreateQuestionBankMutationOptions(options));
+    }
+
+export const getUpdateQuestionBankUrl = (id: string,) => {
+
+
+
+
+  return `/api/question-banks/${id}`
+}
+
+export const updateQuestionBank = async (id: string,
+    questionBankInput: QuestionBankInput, options?: Parameters<typeof customFetch>[1]): Promise<QuestionBank> => {
+
+  return customFetch<QuestionBank>(getUpdateQuestionBankUrl(id),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(questionBankInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateQuestionBankMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateQuestionBank>>, TError,{id: string;data: BodyType<QuestionBankInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateQuestionBank>>, TError,{id: string;data: BodyType<QuestionBankInput>}, TContext> => {
+
+const mutationKey = ['updateQuestionBank'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateQuestionBank>>, {id: string;data: BodyType<QuestionBankInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateQuestionBank(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateQuestionBankMutationResult = NonNullable<Awaited<ReturnType<typeof updateQuestionBank>>>
+    export type UpdateQuestionBankMutationBody = BodyType<QuestionBankInput>
+    export type UpdateQuestionBankMutationError = ErrorType<unknown>
+
+    export const useUpdateQuestionBank = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateQuestionBank>>, TError,{id: string;data: BodyType<QuestionBankInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateQuestionBank>>,
+        TError,
+        {id: string;data: BodyType<QuestionBankInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateQuestionBankMutationOptions(options));
+    }
+
+export const getDeleteQuestionBankUrl = (id: string,) => {
+
+
+
+
+  return `/api/question-banks/${id}`
+}
+
+export const deleteQuestionBank = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<void> => {
+
+  return customFetch<void>(getDeleteQuestionBankUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+
+export const getDeleteQuestionBankMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionBank>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionBank>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteQuestionBank'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteQuestionBank>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteQuestionBank(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteQuestionBankMutationResult = NonNullable<Awaited<ReturnType<typeof deleteQuestionBank>>>
+
+    export type DeleteQuestionBankMutationError = ErrorType<unknown>
+
+    export const useDeleteQuestionBank = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteQuestionBank>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteQuestionBank>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteQuestionBankMutationOptions(options));
     }
 
 export const getHostQuizUrl = (id: string,) => {

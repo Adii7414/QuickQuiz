@@ -8,6 +8,7 @@
 import type { QuizResultsParticipantsItem } from './quizResultsParticipantsItem';
 import type { QuizResultsQuestionsItem } from './quizResultsQuestionsItem';
 import type { QuizResultsQuestionStatsItem } from './quizResultsQuestionStatsItem';
+import type { QuizResultsScoreDistributionItem } from './quizResultsScoreDistributionItem';
 
 export interface QuizResults {
   code: string;
@@ -22,4 +23,6 @@ export interface QuizResults {
   lowestPercentage: number;
   totalAnswers: number;
   correctAnswers: number;
+  medianPercentage?: number;
+  scoreDistribution?: QuizResultsScoreDistributionItem[];
 }

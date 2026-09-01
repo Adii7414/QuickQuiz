@@ -10,4 +10,9 @@ import type { ModerationActionInputAction } from './moderationActionInputAction'
 export interface ModerationActionInput {
   action: ModerationActionInputAction;
   participantId?: string;
+  /**
+     * @minimum 5
+     * @maximum 120
+     */
+  seconds?: number;
 }

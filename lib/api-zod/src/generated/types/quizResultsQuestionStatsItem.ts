@@ -9,4 +9,6 @@
 export type QuizResultsQuestionStatsItem = {
   answered: number;
   correct: number;
+  accuracy?: number;
+  answerCounts?: number[];
 };

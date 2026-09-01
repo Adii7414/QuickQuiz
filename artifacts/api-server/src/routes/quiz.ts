@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { and, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
-import { db, applications, quizzes, registrationKeys, sessions, users } from "@workspace/db";
+import { db, applications, questionBanks, quizzes, registrationKeys, sessions, users } from "@workspace/db";
 
 const router: IRouter = Router();
 const auth = new Map<string, { userId: string; role: string }>();
@@ -72,6 +72,10 @@ function publicApplication(row: typeof applications.$inferSelect) {
 function publicQuiz(row: typeof quizzes.$inferSelect) {
   const questions = row.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }>;
   return { id: row.id, title: row.title, description: row.description, timeLimitSeconds: row.timeLimitSeconds ?? undefined, questions, questionCount: questions.length, updatedAt: row.updatedAt.toISOString() };
+}
+function publicQuestionBank(row: typeof questionBanks.$inferSelect) {
+  const questions = row.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }>;
+  return { id: row.id, name: row.name, description: row.description, questions, questionCount: questions.length, updatedAt: row.updatedAt.toISOString() };
 }
 function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.$inferSelect) {
   const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; answers?: number[] }>) || [];
@@ -268,13 +272,16 @@ router.get("/moderator/sessions", requireRole("MODERATOR"), async (_req, res) =>
 router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const action = String(req.body?.action ?? "");
-  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT"];
+  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT", "SKIP_QUESTION", "RESTART_QUESTION", "EXTEND_TIME"];
   if (!allowed.includes(action)) return res.status(400).json({ error: "Invalid moderation action" });
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
   const current = session(req)!;
   if (current.role === "TEACHER" && row.teacherId !== current.userId) return res.status(403).json({ error: "You do not own this quiz session" });
   const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
+  if (!quiz) return res.status(404).json({ error: "Quiz not found" });
+  const questions = quiz.questions as Array<{ correctIndex: number }>;
   let update: Partial<typeof sessions.$inferInsert> = {};
   if (action === "END") update = { status: "COMPLETE", questionStartedAt: null };
   if (action === "PAUSE") {
@@ -292,8 +299,38 @@ router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async
     if (!participantId || !people.some((person) => person.id === participantId)) return res.status(404).json({ error: "Participant not found" });
     update = { participants: people.filter((person) => person.id !== participantId) };
   }
+  if (action === "SKIP_QUESTION") {
+    if (row.status !== "LIVE") return res.status(400).json({ error: "Only a live session can skip a question." });
+    const currentQuestion = row.currentQuestion ?? 0;
+    const lastQuestion = currentQuestion >= questions.length - 1;
+    update = lastQuestion
+      ? { status: "COMPLETE", questionStartedAt: null }
+      : { currentQuestion: currentQuestion + 1, questionStartedAt: new Date() };
+  }
+  if (action === "RESTART_QUESTION") {
+    if (!["LIVE", "PAUSED"].includes(row.status)) return res.status(400).json({ error: "Start the quiz before restarting a question." });
+    const currentQuestion = row.currentQuestion ?? 0;
+    const resetPeople = people.map((person) => {
+      const withAnswers = person as typeof person & { answers?: number[] };
+      const answers = [...(withAnswers.answers ?? [])];
+      const previousAnswer = answers[currentQuestion];
+      if (previousAnswer === undefined) return person;
+      if (previousAnswer === questions[currentQuestion]?.correctIndex) person.score = Math.max(0, person.score - 1);
+      answers[currentQuestion] = undefined as unknown as number;
+      withAnswers.answers = answers;
+      person.answered = answers.filter((answer) => typeof answer === "number").length;
+      return person;
+    });
+    update = { participants: resetPeople, questionStartedAt: row.status === "LIVE" ? new Date() : null };
+  }
+  if (action === "EXTEND_TIME") {
+    if (row.status !== "LIVE" || !row.questionStartedAt || !quiz.timeLimitSeconds) return res.status(400).json({ error: "Only a live timed question can be extended." });
+    const seconds = Number(req.body?.seconds);
+    if (!Number.isInteger(seconds) || seconds < 5 || seconds > 120) return res.status(400).json({ error: "Choose an extension between 5 and 120 seconds." });
+    update = { questionStartedAt: new Date(row.questionStartedAt.getTime() + seconds * -1000) };
+  }
   const updated = (await db.update(sessions).set(update).where(eq(sessions.code, code)).returning())[0];
-  return res.json(await publicModerationSession(updated));
+  return res.json(current.role === "TEACHER" ? publicSession(updated, quiz) : await publicModerationSession(updated));
 });
 
 router.get("/quizzes", requireRole("TEACHER"), async (req, res) => {
@@ -322,6 +359,35 @@ router.delete("/quizzes/:id", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
   const id = String(req.params.id);
   await db.delete(quizzes).where(and(eq(quizzes.id, id), eq(quizzes.teacherId, current.userId)));
+  return res.status(204).end();
+});
+router.get("/question-banks", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const rows = await db.select().from(questionBanks).where(eq(questionBanks.teacherId, current.userId)).orderBy(desc(questionBanks.updatedAt));
+  return res.json(rows.map(publicQuestionBank));
+});
+router.post("/question-banks", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const { name, description = "", questions = [] } = req.body ?? {};
+  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex > 3)) {
+    return res.status(400).json({ error: "A question bank needs a name and valid four-choice questions." });
+  }
+  const row = (await db.insert(questionBanks).values({ id: randomUUID(), teacherId: current.userId, name, description, questions }).returning())[0];
+  return res.status(201).json(publicQuestionBank(row));
+});
+router.patch("/question-banks/:id", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  const { name, description = "", questions = [] } = req.body ?? {};
+  const id = String(req.params.id);
+  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex > 3)) {
+    return res.status(400).json({ error: "A question bank needs a name and valid four-choice questions." });
+  }
+  const row = (await db.update(questionBanks).set({ name, description, questions, updatedAt: new Date() }).where(and(eq(questionBanks.id, id), eq(questionBanks.teacherId, current.userId))).returning())[0];
+  return row ? res.json(publicQuestionBank(row)) : res.status(404).json({ error: "Question bank not found" });
+});
+router.delete("/question-banks/:id", requireRole("TEACHER"), async (req, res) => {
+  const current = session(req)!;
+  await db.delete(questionBanks).where(and(eq(questionBanks.id, String(req.params.id)), eq(questionBanks.teacherId, current.userId)));
   return res.status(204).end();
 });
 router.post("/quizzes/:id/host", requireRole("TEACHER"), async (req, res) => {
@@ -395,11 +461,25 @@ router.get("/sessions/:code/results", requireRole("TEACHER"), async (req, res) =
     .sort((a, b) => b.score - a.score || b.percentage - a.percentage || a.name.localeCompare(b.name));
   const questionStats = questions.map((question, index) => {
     const answers = people.map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
-    return { answered: answers.length, correct: answers.filter((answer) => answer === question.correctIndex).length };
+    const answerCounts = question.answers.map((_, answerIndex) => answers.filter((answer) => answer === answerIndex).length);
+    const correct = answers.filter((answer) => answer === question.correctIndex).length;
+    return { answered: answers.length, correct, accuracy: answers.length ? Math.round((correct / answers.length) * 100) : 0, answerCounts };
   });
   const totalAnswers = questionStats.reduce((sum, stat) => sum + stat.answered, 0);
   const correctAnswers = questionStats.reduce((sum, stat) => sum + stat.correct, 0);
   const scores = participants.map((person) => person.percentage);
+  const sortedScores = [...scores].sort((a, b) => a - b);
+  const medianPercentage = sortedScores.length
+    ? sortedScores.length % 2
+      ? sortedScores[Math.floor(sortedScores.length / 2)]
+      : Math.round((sortedScores[sortedScores.length / 2 - 1] + sortedScores[sortedScores.length / 2]) / 2)
+    : 0;
+  const scoreDistribution = [
+    { label: "0–24%", count: scores.filter((score) => score < 25).length },
+    { label: "25–49%", count: scores.filter((score) => score >= 25 && score < 50).length },
+    { label: "50–74%", count: scores.filter((score) => score >= 50 && score < 75).length },
+    { label: "75–100%", count: scores.filter((score) => score >= 75).length },
+  ];
 
   return res.json({
     code: row.code,
@@ -414,6 +494,8 @@ router.get("/sessions/:code/results", requireRole("TEACHER"), async (req, res) =
     lowestPercentage: scores.length ? Math.min(...scores) : 0,
     totalAnswers,
     correctAnswers,
+    medianPercentage,
+    scoreDistribution,
   });
 });
 router.post("/sessions/:code/answers", async (req, res) => {
