@@ -1,7 +1,7 @@
 kind = "web"
 previewPath = "/"
 title = "Quiz Platform"
-description = "A secure, simple quiz platform where students join hosted quizzes, teachers create and run sessions after application approval, and moderators verify teacher access."
+description = "A secure live quiz platform where students join hosted quizzes, teachers run approved sessions, and moderators manage access."
 version = "1.0.0"
 id = "artifacts/quiz-platform"
 router = "path"
