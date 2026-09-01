@@ -577,7 +577,7 @@ function HostPage() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><Link href="/teacher/quizzes" className="focus-ring inline-flex items-center gap-2 text-sm font-bold text-[hsl(var(--primary))]"><ArrowLeft className="size-4" /> Back to quizzes</Link><h1 className="mt-5 font-display text-4xl font-bold tracking-[-.06em] sm:text-5xl">Host a live room.</h1><p className="mt-2 max-w-xl text-sm leading-6 text-[hsl(var(--muted-foreground))]">Choose a quiz, share its room code, then move through every question from this dedicated control page.</p></div>
       </div>
-      {roomCode && roomQuery.data ? <LiveRoomPanelV2 session={roomQuery.data} onStart={() => start.mutate({ code: roomCode }, { onSuccess: updateRoom })} onAdvance={() => advance.mutate({ code: roomCode }, { onSuccess: updateRoom })} onAction={runRoomAction} starting={start.isPending} advancing={advance.isPending} actionPending={moderate.isPending} onClose={() => setRoomCode('')} /> : <div className="mt-9 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
+      {roomCode && roomQuery.data ? <div><div className="mt-8 flex justify-end"><CopyRoomCodeButton code={roomCode} /></div><LegacyLiveRoomPanelV2 session={roomQuery.data} onStart={() => start.mutate({ code: roomCode }, { onSuccess: updateRoom })} onAdvance={() => advance.mutate({ code: roomCode }, { onSuccess: updateRoom })} onAction={runRoomAction} starting={start.isPending} advancing={advance.isPending} actionPending={moderate.isPending} onClose={() => setRoomCode('')} /></div> : <div className="mt-9 grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
         <section className="surface rounded-2xl p-5 sm:p-6" data-testid="panel-host-quiz-picker">
           <div className="flex items-center justify-between"><div><h2 className="font-display text-xl font-bold">Choose a quiz</h2><p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Your students will join the quiz you select here.</p></div><span className="rounded-full bg-[hsl(var(--secondary))] px-2.5 py-1 text-xs font-bold text-[hsl(var(--primary))]">{quizzes.length} available</span></div>
           <div className="mt-5 space-y-2">{quizQuery.isLoading ? <LoadingState label="Loading your quizzes" /> : quizQuery.isError ? <ErrorState retry={() => quizQuery.refetch()} /> : quizzes.length === 0 ? <EmptyQuizzes onCreate={() => setLocation('/teacher/quizzes?new=1')} /> : quizzes.map((quiz) => <button type="button" key={quiz.id} onClick={() => setSelectedQuizId(quiz.id)} className={cx('focus-ring flex w-full min-w-0 items-start gap-3 rounded-xl border p-3.5 text-left transition-colors', selectedQuizId === quiz.id ? 'border-[hsl(var(--primary))] bg-[hsl(var(--secondary)/.55)]' : 'border-[hsl(var(--border))] hover:bg-[hsl(var(--muted)/.55)]')} data-testid={`button-select-host-quiz-${quiz.id}`}><span className={cx('mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg', selectedQuizId === quiz.id ? 'bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]' : 'bg-[hsl(var(--muted))] text-[hsl(var(--primary))]')}><BookOpen className="size-4" /></span><span className="min-w-0"><span className="block truncate text-sm font-bold">{quiz.title}</span><span className="mt-1 block truncate text-xs text-[hsl(var(--muted-foreground))]">{quiz.questionCount} questions · {quiz.description || 'No description'}</span></span>{selectedQuizId === quiz.id && <CheckCircle2 className="ml-auto mt-1 size-4 shrink-0 text-[hsl(var(--primary))]" />}</button>)}</div>
@@ -586,6 +586,16 @@ function HostPage() {
       </div>}
     </div>
   </DashboardShell>;
+}
+
+function CopyRoomCodeButton({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    navigator.clipboard?.writeText(code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  return <Button variant="soft" className="min-h-9 px-3 text-xs" onClick={copy} data-testid="button-copy-room-code">{copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />} {copied ? 'Copied' : 'Copy room code'}</Button>;
 }
 
 function LegacyResultsPage() {
@@ -665,6 +675,12 @@ function LegacyLiveRoomPanelV2({ session, onStart, onAdvance, onAction, starting
   const highest = participants.length ? Math.max(...participants.map((person) => person.percentage ?? 0)) : 0;
   const ranked = [...participants].sort((a, b) => (b.score - a.score) || a.name.localeCompare(b.name));
   const [confirmation, setConfirmation] = useState<{ title: string; message: string; action: ModerationActionInputAction; participantId?: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const copyRoomCode = () => {
+    navigator.clipboard?.writeText(session.code);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
   useEffect(() => {
     if (!timeLimit || !session.questionStartedAt || session.status !== 'LIVE') return;
     setNow(Date.now());
