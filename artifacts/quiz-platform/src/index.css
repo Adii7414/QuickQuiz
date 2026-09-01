@@ -151,25 +151,7 @@ button[data-testid^="button-freeze-session-"]:hover {
   background: hsl(var(--primary-foreground) / .2);
 }
 
-.live-room-fullscreen {
-  display: flex;
-  min-height: 100dvh;
-  padding: .75rem;
-  background: hsl(var(--background));
-}
-
-.live-room-fullscreen [data-testid="panel-live-room"] {
-  width: 100%;
-  min-height: 0;
-  max-width: 72rem;
-  margin-top: 0;
-  margin-inline: auto;
-  border: 1px solid hsl(var(--primary) / .25);
-  border-radius: 1.5rem;
-  box-shadow: var(--shadow-lg);
-}
-
-.live-room-fullscreen [data-testid="panel-live-room"] button[aria-label="Close live room"] {
+ [data-testid="panel-live-room"] button[aria-label="Close live room"] {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
@@ -178,48 +160,41 @@ button[data-testid^="button-freeze-session-"]:hover {
   background: hsl(var(--primary-foreground) / .08);
 }
 
-.live-room-fullscreen [data-testid="panel-live-room"] button[aria-label="Close live room"]::after {
+[data-testid="panel-live-room"] button[aria-label="Close live room"]::after {
   content: "Exit room";
   font-size: .75rem;
   font-weight: 700;
 }
 
 @media (max-width: 639px) {
-  .live-room-fullscreen {
-    padding: .5rem;
-  }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] {
-    border-radius: 1.25rem;
-  }
-
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child {
+  [data-testid="panel-live-room"] > div:first-child {
     gap: 1.25rem;
     padding: 1rem;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:first-child {
+  [data-testid="panel-live-room"] > div:first-child > div:first-child {
     min-width: 0;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:first-child h2 {
+  [data-testid="panel-live-room"] > div:first-child > div:first-child h2 {
     overflow-wrap: anywhere;
     font-size: 1.35rem;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child {
+  [data-testid="panel-live-room"] > div:first-child > div:last-child {
     width: 100%;
     min-width: 0;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child {
+  [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .5rem;
     width: 100%;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button:not([aria-label]) {
+  [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button:not([aria-label]) {
     width: 100%;
     min-width: 0;
     justify-content: center;
@@ -227,37 +202,37 @@ button[data-testid^="button-freeze-session-"]:hover {
     font-size: .75rem;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button[aria-label] {
+  [data-testid="panel-live-room"] > div:first-child > div:last-child > div:first-child > button[aria-label] {
     grid-column: 1 / -1;
     justify-self: end;
   }
 
-  .live-room-fullscreen button[data-testid="button-teacher-freeze-session"] {
+  [data-testid="panel-live-room"] button[data-testid="button-teacher-freeze-session"] {
     width: 100%;
     justify-content: center;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div {
+  [data-testid="panel-live-room"] > div:nth-child(3) > div {
     min-width: 0;
     padding: .8rem .65rem;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) {
+  [data-testid="panel-live-room"] > div:nth-child(3) {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div p:last-child {
+  [data-testid="panel-live-room"] > div:nth-child(3) > div p:last-child {
     overflow-wrap: anywhere;
     font-size: 1.3rem;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(2) > div p:first-child {
+  [data-testid="panel-live-room"] > div:nth-child(3) > div p:first-child {
     font-size: .62rem;
     letter-spacing: .1em;
   }
 
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(3),
-  .live-room-fullscreen [data-testid="panel-live-room"] > div:nth-child(4) {
+  [data-testid="panel-live-room"] > div:nth-child(4),
+  [data-testid="panel-live-room"] > div:nth-child(5) {
     padding: 1rem;
   }
 }
