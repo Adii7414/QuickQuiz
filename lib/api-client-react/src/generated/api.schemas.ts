@@ -62,6 +62,29 @@ export interface ApplicationReceipt {
   submittedAt: string;
 }
 
+export type ApplicationStatusStatus = typeof ApplicationStatusStatus[keyof typeof ApplicationStatusStatus];
+
+
+export const ApplicationStatusStatus = {
+  PENDING: 'PENDING',
+  APPROVED: 'APPROVED',
+  REJECTED: 'REJECTED',
+} as const;
+
+export interface ApplicationStatus {
+  id: string;
+  status: ApplicationStatusStatus;
+  submittedAt: string;
+  /** @nullable */
+  reviewedAt: string | null;
+}
+
+export interface Announcement {
+  id: string;
+  message: string;
+  createdAt: string;
+}
+
 export type TeacherApplicationStatus = typeof TeacherApplicationStatus[keyof typeof TeacherApplicationStatus];
 
 
@@ -152,6 +175,8 @@ export interface ModerationSessionParticipant {
   answered: number;
   score: number;
   percentage: number;
+  locked?: boolean;
+  muted?: boolean;
 }
 
 export type ModerationSessionStatus = typeof ModerationSessionStatus[keyof typeof ModerationSessionStatus];
@@ -189,6 +214,7 @@ export interface ModerationSession {
   questionCount: number;
   createdAt: string;
   joinFrozen: boolean;
+  announcements: Announcement[];
   liveQuestion: ModerationSessionLiveQuestion;
   questionStats: ModerationSessionQuestionStatsItem[];
   participants: ModerationSessionParticipant[];
@@ -204,6 +230,12 @@ export const ModerationActionInputAction = {
   FREEZE_JOINS: 'FREEZE_JOINS',
   UNFREEZE_JOINS: 'UNFREEZE_JOINS',
   REMOVE_PARTICIPANT: 'REMOVE_PARTICIPANT',
+  LOCK_PARTICIPANT: 'LOCK_PARTICIPANT',
+  UNLOCK_PARTICIPANT: 'UNLOCK_PARTICIPANT',
+  MUTE_PARTICIPANT: 'MUTE_PARTICIPANT',
+  UNMUTE_PARTICIPANT: 'UNMUTE_PARTICIPANT',
+  BAN_PARTICIPANT: 'BAN_PARTICIPANT',
+  SEND_ANNOUNCEMENT: 'SEND_ANNOUNCEMENT',
   SKIP_QUESTION: 'SKIP_QUESTION',
   RESTART_QUESTION: 'RESTART_QUESTION',
   EXTEND_TIME: 'EXTEND_TIME',
@@ -212,6 +244,8 @@ export const ModerationActionInputAction = {
 export interface ModerationActionInput {
   action: ModerationActionInputAction;
   participantId?: string;
+  /** @maxLength 280 */
+  message?: string;
   /**
      * @minimum 5
      * @maximum 120
@@ -329,6 +363,8 @@ export interface Participant {
   answered: number;
   score: number;
   percentage?: number;
+  locked?: boolean;
+  muted?: boolean;
 }
 
 export interface QuizSession {
@@ -337,6 +373,7 @@ export interface QuizSession {
   quizTitle: string;
   participantCount: number;
   joinFrozen: boolean;
+  announcements?: Announcement[];
   currentQuestion?: number;
   questionStartedAt?: string | null;
   questionStats?: QuizSessionQuestionStatsItem[];

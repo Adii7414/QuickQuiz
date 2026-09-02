@@ -62,5 +62,7 @@ export const sessions = pgTable("quiz_sessions", {
   questionStartedAt: timestamp("question_started_at"),
   joinFrozen: boolean("join_frozen").notNull().default(false),
   participants: jsonb("participants").notNull().default([]),
+  bannedNames: jsonb("banned_names").notNull().default([]),
+  announcements: jsonb("announcements").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

@@ -5,6 +5,7 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { Announcement } from './announcement';
 import type { Participant } from './participant';
 import type { Quiz } from './quiz';
 import type { QuizSessionQuestionStatsItem } from './quizSessionQuestionStatsItem';
@@ -16,6 +17,7 @@ export interface QuizSession {
   quizTitle: string;
   participantCount: number;
   joinFrozen: boolean;
+  announcements?: Announcement[];
   currentQuestion?: number;
   questionStartedAt?: Date | null;
   questionStats?: QuizSessionQuestionStatsItem[];

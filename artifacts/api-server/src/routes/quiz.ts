@@ -78,15 +78,16 @@ function publicQuestionBank(row: typeof questionBanks.$inferSelect) {
   return { id: row.id, name: row.name, description: row.description, questions, questionCount: questions.length, updatedAt: row.updatedAt.toISOString() };
 }
 function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.$inferSelect) {
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; answers?: number[] }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; answers?: number[]; locked?: boolean; muted?: boolean }>) || [];
   const q = quiz ? publicQuiz(quiz) : undefined;
+  const announcements = (row.announcements as Array<{ id: string; message: string; createdAt: string }>) || [];
   const questionStats = quiz
     ? (quiz.questions as Array<{ correctIndex: number }>).map((question, index) => {
         const responses = people.map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
         return { answered: responses.length, correct: responses.filter((answer) => answer === question.correctIndex).length };
       })
     : undefined;
-  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
+  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, announcements, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
 }
 function automaticAdvanceReady(row: typeof sessions.$inferSelect, quiz: typeof quizzes.$inferSelect) {
   if (row.status !== "LIVE" || !quiz.timeLimitSeconds || !row.questionStartedAt) return false;
@@ -112,7 +113,7 @@ async function publicModerationSession(row: typeof sessions.$inferSelect) {
   ]);
   const questionCount = quiz[0] ? (quiz[0].questions as unknown[]).length : 0;
   const questions = (quiz[0]?.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }> | undefined) ?? [];
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; locked?: boolean; muted?: boolean }>) || [];
   const questionStats = questions.map((question, index) => {
     const answers = (row.participants as Array<{ answers?: number[] }> || []).map((person) => person.answers?.[index]).filter((answer): answer is number => typeof answer === "number");
     return { answered: answers.length, correct: answers.filter((answer) => answer === question.correctIndex).length };
@@ -129,6 +130,7 @@ async function publicModerationSession(row: typeof sessions.$inferSelect) {
     questionCount,
     createdAt: row.createdAt.toISOString(),
     joinFrozen: row.joinFrozen,
+    announcements: (row.announcements as Array<{ id: string; message: string; createdAt: string }>) || [],
     liveQuestion: liveQuestion ? { index: row.currentQuestion ?? 0, prompt: liveQuestion.prompt, answers: liveQuestion.answers, correctIndex: liveQuestion.correctIndex } : null,
     questionStats,
     participants: people.map((person) => ({ ...person, percentage: questionCount ? Math.round((person.score / questionCount) * 100) : 0 })),
@@ -186,7 +188,7 @@ router.get("/applications", requireRole("MODERATOR"), async (req, res) => {
   const status = String(req.query.status ?? "");
   const filters = [];
   if (status && ["PENDING", "APPROVED", "REJECTED"].includes(status)) filters.push(eq(applications.status, status));
-  if (search) filters.push(or(ilike(applications.fullName, `%${search}%`), ilike(applications.email, `%${search}%`), ilike(applications.organization, `%${search}%`)));
+  if (search) filters.push(or(ilike(applications.id, `%${search}%`), ilike(applications.fullName, `%${search}%`), ilike(applications.email, `%${search}%`), ilike(applications.organization, `%${search}%`)));
   const rows = await db.select().from(applications).where(filters.length ? and(...filters) : undefined).orderBy(desc(applications.createdAt));
   return res.json(rows.map(publicApplication));
 });
@@ -194,6 +196,13 @@ router.get("/applications/:id", requireRole("MODERATOR"), async (req, res) => {
   const id = String(req.params.id);
   const row = (await db.select().from(applications).where(eq(applications.id, id)).limit(1))[0];
   return row ? res.json(publicApplication(row)) : res.status(404).json({ error: "Application not found" });
+});
+router.get("/application-status/:id", async (req, res) => {
+  const id = String(req.params.id).trim().toUpperCase();
+  const row = (await db.select().from(applications).where(eq(applications.id, id)).limit(1))[0];
+  return row
+    ? res.json({ id: row.id, status: row.status, submittedAt: row.createdAt.toISOString(), reviewedAt: row.reviewedAt?.toISOString() ?? null })
+    : res.status(404).json({ error: "We could not find an application with that ID." });
 });
 router.post("/applications/:id/decision", requireRole("MODERATOR"), async (req, res) => {
   const decision = req.body?.decision;
@@ -272,13 +281,13 @@ router.get("/moderator/sessions", requireRole("MODERATOR"), async (_req, res) =>
 router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const action = String(req.body?.action ?? "");
-  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT", "SKIP_QUESTION", "RESTART_QUESTION", "EXTEND_TIME"];
+  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT", "LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "BAN_PARTICIPANT", "SEND_ANNOUNCEMENT", "SKIP_QUESTION", "RESTART_QUESTION", "EXTEND_TIME"];
   if (!allowed.includes(action)) return res.status(400).json({ error: "Invalid moderation action" });
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
   const current = session(req)!;
   if (current.role === "TEACHER" && row.teacherId !== current.userId) return res.status(403).json({ error: "You do not own this quiz session" });
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; locked?: boolean; muted?: boolean }>) || [];
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
   if (!quiz) return res.status(404).json({ error: "Quiz not found" });
   const questions = quiz.questions as Array<{ correctIndex: number }>;
@@ -298,6 +307,30 @@ router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async
     const participantId = String(req.body?.participantId ?? "");
     if (!participantId || !people.some((person) => person.id === participantId)) return res.status(404).json({ error: "Participant not found" });
     update = { participants: people.filter((person) => person.id !== participantId) };
+  }
+  if (["LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "BAN_PARTICIPANT"].includes(action)) {
+    const participantId = String(req.body?.participantId ?? "");
+    const person = people.find((candidate) => candidate.id === participantId);
+    if (!person) return res.status(404).json({ error: "Participant not found" });
+    if (action === "BAN_PARTICIPANT") {
+      const bannedNames = (row.bannedNames as string[]) || [];
+      update = {
+        participants: people.filter((candidate) => candidate.id !== participantId),
+        bannedNames: [...new Set([...bannedNames, person.name.trim().toLowerCase()])],
+      };
+    } else {
+      if (action === "LOCK_PARTICIPANT") person.locked = true;
+      if (action === "UNLOCK_PARTICIPANT") person.locked = false;
+      if (action === "MUTE_PARTICIPANT") person.muted = true;
+      if (action === "UNMUTE_PARTICIPANT") person.muted = false;
+      update = { participants: people };
+    }
+  }
+  if (action === "SEND_ANNOUNCEMENT") {
+    const message = String(req.body?.message ?? "").trim();
+    if (message.length < 1 || message.length > 280) return res.status(400).json({ error: "Announcements must be between 1 and 280 characters." });
+    const announcements = (row.announcements as Array<{ id: string; message: string; createdAt: string }>) || [];
+    update = { announcements: [...announcements, { id: randomUUID(), message, createdAt: new Date().toISOString() }].slice(-20) };
   }
   if (action === "SKIP_QUESTION") {
     if (row.status !== "LIVE") return res.status(400).json({ error: "Only a live session can skip a question." });
@@ -374,7 +407,7 @@ router.get("/question-banks", requireRole("TEACHER"), async (req, res) => {
 router.post("/question-banks", requireRole("TEACHER"), async (req, res) => {
   const current = session(req)!;
   const { name, description = "", questions = [] } = req.body ?? {};
-  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex > 3)) {
+  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || Number(q.correctIndex) < 0 || Number(q.correctIndex) > 3)) {
     return res.status(400).json({ error: "A question bank needs a name and valid four-choice questions." });
   }
   const row = (await db.insert(questionBanks).values({ id: randomUUID(), teacherId: current.userId, name, description, questions }).returning())[0];
@@ -384,7 +417,7 @@ router.patch("/question-banks/:id", requireRole("TEACHER"), async (req, res) => 
   const current = session(req)!;
   const { name, description = "", questions = [] } = req.body ?? {};
   const id = String(req.params.id);
-  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || q.correctIndex < 0 || q.correctIndex > 3)) {
+  if (!name || !Array.isArray(questions) || questions.length === 0 || questions.some((q: { prompt?: string; answers?: string[]; correctIndex?: number }) => !q.prompt || !Array.isArray(q.answers) || q.answers.length !== 4 || !Number.isInteger(q.correctIndex) || Number(q.correctIndex) < 0 || Number(q.correctIndex) > 3)) {
     return res.status(400).json({ error: "A question bank needs a name and valid four-choice questions." });
   }
   const row = (await db.update(questionBanks).set({ name, description, questions, updatedAt: new Date() }).where(and(eq(questionBanks.id, id), eq(questionBanks.teacherId, current.userId))).returning())[0];
@@ -418,6 +451,8 @@ router.post("/sessions/:code", async (req, res) => {
   if (!row || row.status !== "LOBBY" || row.joinFrozen) return res.status(400).json({ code: "ROOM_NOT_ACCEPTING", error: "This quiz is no longer accepting players." });
   const name = String(req.body?.name ?? "").trim();
   if (!name) return res.status(400).json({ error: "Enter your name." });
+  const bannedNames = (row.bannedNames as string[]) || [];
+  if (bannedNames.includes(name.toLowerCase())) return res.status(403).json({ code: "PARTICIPANT_BANNED", error: "You have been removed from this room." });
   const participant = { id: randomUUID(), name, answered: 0, score: 0 };
   const people = [...((row.participants as typeof participant[]) || []), participant];
   await db.update(sessions).set({ participants: people }).where(eq(sessions.code, code));
@@ -509,10 +544,11 @@ router.post("/sessions/:code/answers", async (req, res) => {
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; locked?: boolean }>) || [];
   const person = people.find(p => p.id === participantId);
   const questions = quiz.questions as Array<{ correctIndex: number }>;
   if (row.status !== "LIVE" || Number(questionIndex) !== (row.currentQuestion ?? 0) || !person || !questions[questionIndex]) return res.status(400).json({ error: "This question is not accepting answers." });
+  if (person.locked) return res.status(403).json({ code: "PARTICIPANT_LOCKED", error: "Your answers are temporarily locked by the moderator." });
   if (quiz.timeLimitSeconds && row.questionStartedAt && Date.now() >= row.questionStartedAt.getTime() + quiz.timeLimitSeconds * 1000) return res.status(400).json({ error: "Time is up for this question." });
   const participantWithAnswers = person as typeof person & { answers?: number[] };
   if (participantWithAnswers.answers?.[Number(questionIndex)] !== undefined) return res.status(400).json({ error: "This question has already been answered." });

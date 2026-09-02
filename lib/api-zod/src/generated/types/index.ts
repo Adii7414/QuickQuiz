@@ -6,11 +6,14 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './announcement';
 export * from './answerInput';
 export * from './applicationDecisionInput';
 export * from './applicationDecisionInputDecision';
 export * from './applicationReceipt';
 export * from './applicationReceiptStatus';
+export * from './applicationStatus';
+export * from './applicationStatusStatus';
 export * from './currentUser';
 export * from './currentUserRole';
 export * from './decisionResult';

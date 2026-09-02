@@ -23,6 +23,7 @@ import type {
   AnswerInput,
   ApplicationDecisionInput,
   ApplicationReceipt,
+  ApplicationStatus,
   CurrentUser,
   DecisionResult,
   HealthStatus,
@@ -624,6 +625,77 @@ export function useGetTeacherApplication<TData = Awaited<ReturnType<typeof getTe
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetTeacherApplicationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetApplicationStatusUrl = (id: string,) => {
+
+
+
+
+  return `/api/application-status/${id}`
+}
+
+export const getApplicationStatus = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ApplicationStatus> => {
+
+  return customFetch<ApplicationStatus>(getGetApplicationStatusUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetApplicationStatusQueryKey = (id: string,) => {
+    return [
+    `/api/application-status/${id}`
+    ] as const;
+    }
+
+
+export const getGetApplicationStatusQueryOptions = <TData = Awaited<ReturnType<typeof getApplicationStatus>>, TError = ErrorType<void>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getApplicationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetApplicationStatusQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getApplicationStatus>>> = ({ signal }) => getApplicationStatus(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getApplicationStatus>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetApplicationStatusQueryResult = NonNullable<Awaited<ReturnType<typeof getApplicationStatus>>>
+export type GetApplicationStatusQueryError = ErrorType<void>
+
+
+
+export function useGetApplicationStatus<TData = Awaited<ReturnType<typeof getApplicationStatus>>, TError = ErrorType<void>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getApplicationStatus>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetApplicationStatusQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

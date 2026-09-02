@@ -10,6 +10,8 @@ import type { ModerationActionInputAction } from './moderationActionInputAction'
 export interface ModerationActionInput {
   action: ModerationActionInputAction;
   participantId?: string;
+  /** @maxLength 280 */
+  message?: string;
   /**
      * @minimum 5
      * @maximum 120

@@ -12,4 +12,6 @@ export interface Participant {
   answered: number;
   score: number;
   percentage?: number;
+  locked?: boolean;
+  muted?: boolean;
 }

@@ -12,4 +12,6 @@ export interface ModerationSessionParticipant {
   answered: number;
   score: number;
   percentage: number;
+  locked?: boolean;
+  muted?: boolean;
 }

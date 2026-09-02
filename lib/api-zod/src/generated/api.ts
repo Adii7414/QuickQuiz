@@ -142,6 +142,18 @@ export const GetTeacherApplicationResponse = zod.object({
 }))
 
 
+export const GetApplicationStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const GetApplicationStatusResponse = zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  "submittedAt": zod.string(),
+  "reviewedAt": zod.string().nullable()
+})
+
+
 export const DecideTeacherApplicationParams = zod.object({
   "id": zod.coerce.string()
 })
@@ -252,6 +264,11 @@ export const ListModeratorSessionsResponseItem = zod.object({
   "questionCount": zod.number(),
   "createdAt": zod.string(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})),
   "liveQuestion": zod.object({
   "index": zod.number(),
   "prompt": zod.string(),
@@ -269,7 +286,9 @@ export const ListModeratorSessionsResponseItem = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number()
+  "percentage": zod.number(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 }))
 })
 export const ListModeratorSessionsResponse = zod.array(ListModeratorSessionsResponseItem)
@@ -279,14 +298,17 @@ export const ModerateQuizSessionParams = zod.object({
   "code": zod.coerce.string()
 })
 
+export const moderateQuizSessionBodyMessageMax = 280;
+
 export const moderateQuizSessionBodySecondsMin = 5;
 export const moderateQuizSessionBodySecondsMax = 120;
 
 
 
 export const ModerateQuizSessionBody = zod.object({
-  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT', 'SKIP_QUESTION', 'RESTART_QUESTION', 'EXTEND_TIME']),
+  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT', 'LOCK_PARTICIPANT', 'UNLOCK_PARTICIPANT', 'MUTE_PARTICIPANT', 'UNMUTE_PARTICIPANT', 'BAN_PARTICIPANT', 'SEND_ANNOUNCEMENT', 'SKIP_QUESTION', 'RESTART_QUESTION', 'EXTEND_TIME']),
   "participantId": zod.string().optional(),
+  "message": zod.string().max(moderateQuizSessionBodyMessageMax).optional(),
   "seconds": zod.number().min(moderateQuizSessionBodySecondsMin).max(moderateQuizSessionBodySecondsMax).optional()
 })
 
@@ -301,6 +323,11 @@ export const ModerateQuizSessionResponse = zod.object({
   "questionCount": zod.number(),
   "createdAt": zod.string(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})),
   "liveQuestion": zod.object({
   "index": zod.number(),
   "prompt": zod.string(),
@@ -318,7 +345,9 @@ export const ModerateQuizSessionResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number()
+  "percentage": zod.number(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 }))
 })
 
@@ -697,6 +726,11 @@ export const HostQuizResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -710,7 +744,9 @@ export const HostQuizResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })),
   "quiz": zod.object({
   "title": zod.string().min(hostQuizResponseQuizOneTitleMin),
@@ -755,6 +791,11 @@ export const GetQuizSessionResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -768,7 +809,9 @@ export const GetQuizSessionResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })),
   "quiz": zod.object({
   "title": zod.string().min(getQuizSessionResponseQuizOneTitleMin),
@@ -803,7 +846,9 @@ export const JoinQuizSessionResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })
 
 
@@ -833,6 +878,11 @@ export const StartQuizSessionResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -846,7 +896,9 @@ export const StartQuizSessionResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })),
   "quiz": zod.object({
   "title": zod.string().min(startQuizSessionResponseQuizOneTitleMin),
@@ -891,6 +943,11 @@ export const AdvanceQuizSessionResponse = zod.object({
   "quizTitle": zod.string(),
   "participantCount": zod.number(),
   "joinFrozen": zod.boolean(),
+  "announcements": zod.array(zod.object({
+  "id": zod.string(),
+  "message": zod.string(),
+  "createdAt": zod.string()
+})).optional(),
   "currentQuestion": zod.number().optional(),
   "questionStartedAt": zod.coerce.date().nullish(),
   "questionStats": zod.array(zod.object({
@@ -904,7 +961,9 @@ export const AdvanceQuizSessionResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })),
   "quiz": zod.object({
   "title": zod.string().min(advanceQuizSessionResponseQuizOneTitleMin),
@@ -945,7 +1004,9 @@ export const SubmitAnswerResponse = zod.object({
   "name": zod.string(),
   "answered": zod.number(),
   "score": zod.number(),
-  "percentage": zod.number().optional()
+  "percentage": zod.number().optional(),
+  "locked": zod.boolean().optional(),
+  "muted": zod.boolean().optional()
 })
 
 
