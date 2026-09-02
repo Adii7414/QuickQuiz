@@ -14,4 +14,9 @@ export interface Participant {
   percentage?: number;
   locked?: boolean;
   muted?: boolean;
+  warningCount?: number;
+  /** @nullable */
+  lockedUntil?: string | null;
+  /** @nullable */
+  mutedUntil?: string | null;
 }

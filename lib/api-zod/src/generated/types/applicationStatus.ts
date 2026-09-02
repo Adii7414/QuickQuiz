@@ -13,4 +13,6 @@ export interface ApplicationStatus {
   submittedAt: string;
   /** @nullable */
   reviewedAt: string | null;
+  /** @nullable */
+  reviewNote?: string | null;
 }

@@ -12,4 +12,5 @@ export type ApplicationDecisionInputDecision = typeof ApplicationDecisionInputDe
 export const ApplicationDecisionInputDecision = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  NEEDS_INFO: 'NEEDS_INFO',
 } as const;

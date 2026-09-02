@@ -26,4 +26,5 @@ export interface ModerationSession {
   liveQuestion: ModerationSessionLiveQuestion;
   questionStats: ModerationSessionQuestionStatsItem[];
   participants: ModerationSessionParticipant[];
+  bannedNames?: string[];
 }

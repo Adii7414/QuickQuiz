@@ -11,6 +11,7 @@ export type TeacherApplicationStatus = typeof TeacherApplicationStatus[keyof typ
 
 export const TeacherApplicationStatus = {
   PENDING: 'PENDING',
+  NEEDS_INFO: 'NEEDS_INFO',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
 } as const;

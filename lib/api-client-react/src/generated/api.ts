@@ -28,13 +28,17 @@ import type {
   DecisionResult,
   HealthStatus,
   JoinSessionInput,
+  ListModerationReportsParams,
   ListModeratorUsersParams,
+  ListSupportCasesParams,
   ListTeacherApplicationsParams,
   LoginInput,
   ModerationActionInput,
+  ModerationReport,
   ModerationSession,
   ModerationUser,
   ModerationUserStatusInput,
+  ModeratorDashboard,
   Participant,
   QuestionBank,
   QuestionBankInput,
@@ -43,7 +47,13 @@ import type {
   QuizResults,
   QuizSession,
   RegistrationKeyDetails,
+  ReportInput,
+  ReportResolutionInput,
   Session,
+  SupportCase,
+  SupportCaseInput,
+  SupportCaseNoteInput,
+  SupportCaseStatusInput,
   TeacherApplication,
   TeacherApplicationInput,
   TeacherRegistrationInput,
@@ -707,6 +717,561 @@ export function useGetApplicationStatus<TData = Awaited<ReturnType<typeof getApp
 
 
 
+
+export const getGetModeratorDashboardUrl = () => {
+
+
+
+
+  return `/api/moderator/dashboard`
+}
+
+export const getModeratorDashboard = async ( options?: Parameters<typeof customFetch>[1]): Promise<ModeratorDashboard> => {
+
+  return customFetch<ModeratorDashboard>(getGetModeratorDashboardUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetModeratorDashboardQueryKey = () => {
+    return [
+    `/api/moderator/dashboard`
+    ] as const;
+    }
+
+
+export const getGetModeratorDashboardQueryOptions = <TData = Awaited<ReturnType<typeof getModeratorDashboard>>, TError = ErrorType<void>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getModeratorDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetModeratorDashboardQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getModeratorDashboard>>> = ({ signal }) => getModeratorDashboard({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getModeratorDashboard>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetModeratorDashboardQueryResult = NonNullable<Awaited<ReturnType<typeof getModeratorDashboard>>>
+export type GetModeratorDashboardQueryError = ErrorType<void>
+
+
+
+export function useGetModeratorDashboard<TData = Awaited<ReturnType<typeof getModeratorDashboard>>, TError = ErrorType<void>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getModeratorDashboard>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetModeratorDashboardQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListSupportCasesUrl = (params?: ListSupportCasesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/moderator/support-cases?${stringifiedParams}` : `/api/moderator/support-cases`
+}
+
+export const listSupportCases = async (params?: ListSupportCasesParams, options?: Parameters<typeof customFetch>[1]): Promise<SupportCase[]> => {
+
+  return customFetch<SupportCase[]>(getListSupportCasesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListSupportCasesQueryKey = (params?: ListSupportCasesParams,) => {
+    return [
+    `/api/moderator/support-cases`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListSupportCasesQueryOptions = <TData = Awaited<ReturnType<typeof listSupportCases>>, TError = ErrorType<void>>(params?: ListSupportCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSupportCasesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSupportCases>>> = ({ signal }) => listSupportCases(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSupportCases>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListSupportCasesQueryResult = NonNullable<Awaited<ReturnType<typeof listSupportCases>>>
+export type ListSupportCasesQueryError = ErrorType<void>
+
+
+
+export function useListSupportCases<TData = Awaited<ReturnType<typeof listSupportCases>>, TError = ErrorType<void>>(
+ params?: ListSupportCasesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listSupportCases>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListSupportCasesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getCreateSupportCaseUrl = () => {
+
+
+
+
+  return `/api/moderator/support-cases`
+}
+
+export const createSupportCase = async (supportCaseInput: SupportCaseInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportCase> => {
+
+  return customFetch<SupportCase>(getCreateSupportCaseUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportCaseInput)
+  }
+);}
+
+
+
+
+
+export const getCreateSupportCaseMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportCase>>, TError,{data: BodyType<SupportCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createSupportCase>>, TError,{data: BodyType<SupportCaseInput>}, TContext> => {
+
+const mutationKey = ['createSupportCase'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createSupportCase>>, {data: BodyType<SupportCaseInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createSupportCase(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateSupportCaseMutationResult = NonNullable<Awaited<ReturnType<typeof createSupportCase>>>
+    export type CreateSupportCaseMutationBody = BodyType<SupportCaseInput>
+    export type CreateSupportCaseMutationError = ErrorType<void>
+
+    export const useCreateSupportCase = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createSupportCase>>, TError,{data: BodyType<SupportCaseInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createSupportCase>>,
+        TError,
+        {data: BodyType<SupportCaseInput>},
+        TContext
+      > => {
+      return useMutation(getCreateSupportCaseMutationOptions(options));
+    }
+
+export const getAddSupportCaseNoteUrl = (id: string,) => {
+
+
+
+
+  return `/api/moderator/support-cases/${id}/note`
+}
+
+export const addSupportCaseNote = async (id: string,
+    supportCaseNoteInput: SupportCaseNoteInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportCase> => {
+
+  return customFetch<SupportCase>(getAddSupportCaseNoteUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportCaseNoteInput)
+  }
+);}
+
+
+
+
+
+export const getAddSupportCaseNoteMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSupportCaseNote>>, TError,{id: string;data: BodyType<SupportCaseNoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addSupportCaseNote>>, TError,{id: string;data: BodyType<SupportCaseNoteInput>}, TContext> => {
+
+const mutationKey = ['addSupportCaseNote'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addSupportCaseNote>>, {id: string;data: BodyType<SupportCaseNoteInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addSupportCaseNote(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddSupportCaseNoteMutationResult = NonNullable<Awaited<ReturnType<typeof addSupportCaseNote>>>
+    export type AddSupportCaseNoteMutationBody = BodyType<SupportCaseNoteInput>
+    export type AddSupportCaseNoteMutationError = ErrorType<void>
+
+    export const useAddSupportCaseNote = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addSupportCaseNote>>, TError,{id: string;data: BodyType<SupportCaseNoteInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addSupportCaseNote>>,
+        TError,
+        {id: string;data: BodyType<SupportCaseNoteInput>},
+        TContext
+      > => {
+      return useMutation(getAddSupportCaseNoteMutationOptions(options));
+    }
+
+export const getUpdateSupportCaseStatusUrl = (id: string,) => {
+
+
+
+
+  return `/api/moderator/support-cases/${id}/status`
+}
+
+export const updateSupportCaseStatus = async (id: string,
+    supportCaseStatusInput: SupportCaseStatusInput, options?: Parameters<typeof customFetch>[1]): Promise<SupportCase> => {
+
+  return customFetch<SupportCase>(getUpdateSupportCaseStatusUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(supportCaseStatusInput)
+  }
+);}
+
+
+
+
+
+export const getUpdateSupportCaseStatusMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSupportCaseStatus>>, TError,{id: string;data: BodyType<SupportCaseStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateSupportCaseStatus>>, TError,{id: string;data: BodyType<SupportCaseStatusInput>}, TContext> => {
+
+const mutationKey = ['updateSupportCaseStatus'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateSupportCaseStatus>>, {id: string;data: BodyType<SupportCaseStatusInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateSupportCaseStatus(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateSupportCaseStatusMutationResult = NonNullable<Awaited<ReturnType<typeof updateSupportCaseStatus>>>
+    export type UpdateSupportCaseStatusMutationBody = BodyType<SupportCaseStatusInput>
+    export type UpdateSupportCaseStatusMutationError = ErrorType<void>
+
+    export const useUpdateSupportCaseStatus = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateSupportCaseStatus>>, TError,{id: string;data: BodyType<SupportCaseStatusInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateSupportCaseStatus>>,
+        TError,
+        {id: string;data: BodyType<SupportCaseStatusInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateSupportCaseStatusMutationOptions(options));
+    }
+
+export const getCreateModerationReportUrl = () => {
+
+
+
+
+  return `/api/reports`
+}
+
+export const createModerationReport = async (reportInput: ReportInput, options?: Parameters<typeof customFetch>[1]): Promise<ModerationReport> => {
+
+  return customFetch<ModerationReport>(getCreateModerationReportUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportInput)
+  }
+);}
+
+
+
+
+
+export const getCreateModerationReportMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createModerationReport>>, TError,{data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createModerationReport>>, TError,{data: BodyType<ReportInput>}, TContext> => {
+
+const mutationKey = ['createModerationReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createModerationReport>>, {data: BodyType<ReportInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createModerationReport(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateModerationReportMutationResult = NonNullable<Awaited<ReturnType<typeof createModerationReport>>>
+    export type CreateModerationReportMutationBody = BodyType<ReportInput>
+    export type CreateModerationReportMutationError = ErrorType<unknown>
+
+    export const useCreateModerationReport = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createModerationReport>>, TError,{data: BodyType<ReportInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createModerationReport>>,
+        TError,
+        {data: BodyType<ReportInput>},
+        TContext
+      > => {
+      return useMutation(getCreateModerationReportMutationOptions(options));
+    }
+
+export const getListModerationReportsUrl = (params?: ListModerationReportsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/moderator/reports?${stringifiedParams}` : `/api/moderator/reports`
+}
+
+export const listModerationReports = async (params?: ListModerationReportsParams, options?: Parameters<typeof customFetch>[1]): Promise<ModerationReport[]> => {
+
+  return customFetch<ModerationReport[]>(getListModerationReportsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListModerationReportsQueryKey = (params?: ListModerationReportsParams,) => {
+    return [
+    `/api/moderator/reports`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListModerationReportsQueryOptions = <TData = Awaited<ReturnType<typeof listModerationReports>>, TError = ErrorType<void>>(params?: ListModerationReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModerationReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListModerationReportsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listModerationReports>>> = ({ signal }) => listModerationReports(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listModerationReports>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListModerationReportsQueryResult = NonNullable<Awaited<ReturnType<typeof listModerationReports>>>
+export type ListModerationReportsQueryError = ErrorType<void>
+
+
+
+export function useListModerationReports<TData = Awaited<ReturnType<typeof listModerationReports>>, TError = ErrorType<void>>(
+ params?: ListModerationReportsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listModerationReports>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListModerationReportsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getResolveModerationReportUrl = (id: string,) => {
+
+
+
+
+  return `/api/moderator/reports/${id}/resolve`
+}
+
+export const resolveModerationReport = async (id: string,
+    reportResolutionInput: ReportResolutionInput, options?: Parameters<typeof customFetch>[1]): Promise<ModerationReport> => {
+
+  return customFetch<ModerationReport>(getResolveModerationReportUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(reportResolutionInput)
+  }
+);}
+
+
+
+
+
+export const getResolveModerationReportMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveModerationReport>>, TError,{id: string;data: BodyType<ReportResolutionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof resolveModerationReport>>, TError,{id: string;data: BodyType<ReportResolutionInput>}, TContext> => {
+
+const mutationKey = ['resolveModerationReport'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof resolveModerationReport>>, {id: string;data: BodyType<ReportResolutionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  resolveModerationReport(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ResolveModerationReportMutationResult = NonNullable<Awaited<ReturnType<typeof resolveModerationReport>>>
+    export type ResolveModerationReportMutationBody = BodyType<ReportResolutionInput>
+    export type ResolveModerationReportMutationError = ErrorType<void>
+
+    export const useResolveModerationReport = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof resolveModerationReport>>, TError,{id: string;data: BodyType<ReportResolutionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof resolveModerationReport>>,
+        TError,
+        {id: string;data: BodyType<ReportResolutionInput>},
+        TContext
+      > => {
+      return useMutation(getResolveModerationReportMutationOptions(options));
+    }
 
 export const getDecideTeacherApplicationUrl = (id: string,) => {
 

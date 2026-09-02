@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID, scryptSync, timingSafeEqual } from "node:crypto";
 import { and, count, desc, eq, ilike, inArray, isNull, or } from "drizzle-orm";
-import { db, applications, questionBanks, quizzes, registrationKeys, sessions, users } from "@workspace/db";
+import { db, applications, moderationReports, questionBanks, quizzes, registrationKeys, sessions, supportCases, users } from "@workspace/db";
 
 const router: IRouter = Router();
 const auth = new Map<string, { userId: string; role: string }>();
@@ -67,7 +67,19 @@ function issue(res: Response, user: { id: string; name: string; email: string; r
   return res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
 }
 function publicApplication(row: typeof applications.$inferSelect) {
-  return { id: row.id, fullName: row.fullName, email: row.email, organization: row.organization, reason: row.reason, phone: row.phone, role: row.applicantRole, status: row.status, submittedAt: row.createdAt.toISOString(), reviewedAt: row.reviewedAt?.toISOString() ?? null };
+  return { id: row.id, fullName: row.fullName, email: row.email, organization: row.organization, reason: row.reason, phone: row.phone, role: row.applicantRole, status: row.status, reviewNote: row.reviewNote, submittedAt: row.createdAt.toISOString(), reviewedAt: row.reviewedAt?.toISOString() ?? null };
+}
+function controlIsActive(active: boolean | undefined, until: string | undefined) {
+  return Boolean(active && (!until || new Date(until).getTime() > Date.now()));
+}
+function publicParticipant<T extends { locked?: boolean; muted?: boolean; lockedUntil?: string | null; mutedUntil?: string | null }>(person: T) {
+  return { ...person, locked: controlIsActive(person.locked, person.lockedUntil ?? undefined), muted: controlIsActive(person.muted, person.mutedUntil ?? undefined) };
+}
+function publicSupportCase(row: typeof supportCases.$inferSelect) {
+  return { id: row.id, subject: row.subject, description: row.description, category: row.category, priority: row.priority, status: row.status, applicationId: row.applicationId, teacherId: row.teacherId, roomCode: row.roomCode, assignedTo: row.assignedTo, notes: row.notes, resolution: row.resolution, createdAt: row.createdAt.toISOString(), updatedAt: row.updatedAt.toISOString(), resolvedAt: row.resolvedAt?.toISOString() ?? null };
+}
+function publicReport(row: typeof moderationReports.$inferSelect) {
+  return { id: row.id, roomCode: row.roomCode, participantId: row.participantId, participantName: row.participantName, reporterName: row.reporterName, category: row.category, details: row.details, status: row.status, resolution: row.resolution, createdAt: row.createdAt.toISOString(), resolvedAt: row.resolvedAt?.toISOString() ?? null };
 }
 function publicQuiz(row: typeof quizzes.$inferSelect) {
   const questions = row.questions as Array<{ prompt: string; answers: string[]; correctIndex: number }>;
@@ -87,7 +99,7 @@ function publicSession(row: typeof sessions.$inferSelect, quiz?: typeof quizzes.
         return { answered: responses.length, correct: responses.filter((answer) => answer === question.correctIndex).length };
       })
     : undefined;
-  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, announcements, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...p, percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
+  return { code: row.code, status: row.status, quizTitle: quiz?.title ?? "Quiz", participantCount: people.length, currentQuestion: row.currentQuestion ?? 0, questionStartedAt: row.questionStartedAt?.toISOString() ?? null, joinFrozen: row.joinFrozen, announcements, questionStats, participants: people.map(({ answers: _answers, ...p }) => ({ ...publicParticipant(p), percentage: q?.questionCount ? Math.round((p.score / q.questionCount) * 100) : 0 })), ...(q ? { quiz: q } : {}) };
 }
 function automaticAdvanceReady(row: typeof sessions.$inferSelect, quiz: typeof quizzes.$inferSelect) {
   if (row.status !== "LIVE" || !quiz.timeLimitSeconds || !row.questionStartedAt) return false;
@@ -133,7 +145,8 @@ async function publicModerationSession(row: typeof sessions.$inferSelect) {
     announcements: (row.announcements as Array<{ id: string; message: string; createdAt: string }>) || [],
     liveQuestion: liveQuestion ? { index: row.currentQuestion ?? 0, prompt: liveQuestion.prompt, answers: liveQuestion.answers, correctIndex: liveQuestion.correctIndex } : null,
     questionStats,
-    participants: people.map((person) => ({ ...person, percentage: questionCount ? Math.round((person.score / questionCount) * 100) : 0 })),
+    bannedNames: (row.bannedNames as string[]) || [],
+    participants: people.map((person) => ({ ...publicParticipant(person), percentage: questionCount ? Math.round((person.score / questionCount) * 100) : 0 })),
   };
 }
 
@@ -179,6 +192,8 @@ router.get("/auth/me", async (req, res) => {
 router.post("/applications", async (req, res) => {
   const { fullName, email, organization, reason, phone, role } = req.body ?? {};
   if (!fullName || !emailPattern.test(email) || !organization || String(reason).length < 10) return res.status(400).json({ error: "Please complete all required fields." });
+  const pendingApplication = (await db.select().from(applications).where(and(eq(applications.email, String(email).toLowerCase()), eq(applications.status, "PENDING"))).limit(1))[0];
+  if (pendingApplication) return res.status(409).json({ error: "You already have an application awaiting review.", applicationId: pendingApplication.id });
   const id = `APP-${randomBytes(5).toString("hex").toUpperCase()}`;
   const row = (await db.insert(applications).values({ id, fullName, email: email.toLowerCase(), organization, reason, phone: phone || null, applicantRole: role || null }).returning())[0];
   return res.status(201).json({ id: row.id, status: row.status, submittedAt: row.createdAt.toISOString() });
@@ -201,18 +216,19 @@ router.get("/application-status/:id", async (req, res) => {
   const id = String(req.params.id).trim().toUpperCase();
   const row = (await db.select().from(applications).where(eq(applications.id, id)).limit(1))[0];
   return row
-    ? res.json({ id: row.id, status: row.status, submittedAt: row.createdAt.toISOString(), reviewedAt: row.reviewedAt?.toISOString() ?? null })
+    ? res.json({ id: row.id, status: row.status, submittedAt: row.createdAt.toISOString(), reviewedAt: row.reviewedAt?.toISOString() ?? null, reviewNote: row.reviewNote })
     : res.status(404).json({ error: "We could not find an application with that ID." });
 });
 router.post("/applications/:id/decision", requireRole("MODERATOR"), async (req, res) => {
   const decision = req.body?.decision;
-  if (!["APPROVED", "REJECTED"].includes(decision)) return res.status(400).json({ error: "Invalid decision" });
+  if (!["APPROVED", "REJECTED", "NEEDS_INFO"].includes(decision)) return res.status(400).json({ error: "Invalid decision" });
+  const reviewNote = String(req.body?.reviewNote ?? "").trim() || null;
   const id = String(req.params.id);
   const row = (await db.select().from(applications).where(eq(applications.id, id)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Application not found" });
   const reviewedAt = new Date();
-  const updated = (await db.update(applications).set({ status: decision, reviewedAt }).where(eq(applications.id, row.id)).returning())[0];
-  if (decision === "REJECTED") return res.json({ application: publicApplication(updated), registrationKey: null, expiresAt: null });
+  const updated = (await db.update(applications).set({ status: decision, reviewNote, reviewedAt }).where(eq(applications.id, row.id)).returning())[0];
+  if (decision !== "APPROVED") return res.json({ application: publicApplication(updated), registrationKey: null, expiresAt: null });
   const raw = `TCH-${randomBytes(18).toString("base64url")}`;
   const expires = new Date(Date.now() + 1000 * 60 * 60 * 72);
   const existingKey = (await db.select().from(registrationKeys).where(eq(registrationKeys.applicationId, row.id)).limit(1))[0];
@@ -224,6 +240,84 @@ router.post("/applications/:id/decision", requireRole("MODERATOR"), async (req, 
     await db.insert(registrationKeys).values({ id: randomUUID(), applicationId: row.id, keyHash: hash(raw), encryptedKey: encryptKey(raw), expiresAt: expires });
   }
   return res.json({ application: publicApplication(updated), registrationKey: raw, expiresAt: expires.toISOString() });
+});
+router.get("/moderator/dashboard", requireRole("MODERATOR"), async (_req, res) => {
+  const [pendingApplications, openCases, openReports, activeRooms, activeTeachers, suspendedTeachers] = await Promise.all([
+    db.select({ value: count() }).from(applications).where(eq(applications.status, "PENDING")),
+    db.select({ value: count() }).from(supportCases).where(inArray(supportCases.status, ["OPEN", "IN_PROGRESS", "WAITING_ON_APPLICANT"])),
+    db.select({ value: count() }).from(moderationReports).where(inArray(moderationReports.status, ["OPEN", "REVIEWING"])),
+    db.select({ value: count() }).from(sessions).where(inArray(sessions.status, ["LOBBY", "LIVE", "PAUSED"])),
+    db.select({ value: count() }).from(users).where(and(eq(users.role, "TEACHER"), eq(users.status, "ACTIVE"))),
+    db.select({ value: count() }).from(users).where(and(eq(users.role, "TEACHER"), eq(users.status, "SUSPENDED"))),
+  ]);
+  return res.json({
+    pendingApplications: Number(pendingApplications[0]?.value ?? 0),
+    openCases: Number(openCases[0]?.value ?? 0),
+    openReports: Number(openReports[0]?.value ?? 0),
+    activeRooms: Number(activeRooms[0]?.value ?? 0),
+    activeTeachers: Number(activeTeachers[0]?.value ?? 0),
+    suspendedTeachers: Number(suspendedTeachers[0]?.value ?? 0),
+  });
+});
+router.get("/moderator/support-cases", requireRole("MODERATOR"), async (req, res) => {
+  const status = String(req.query.status ?? "").toUpperCase();
+  const priority = String(req.query.priority ?? "").toUpperCase();
+  const filters = [];
+  if (["OPEN", "IN_PROGRESS", "WAITING_ON_APPLICANT", "RESOLVED", "CLOSED"].includes(status)) filters.push(eq(supportCases.status, status));
+  if (["LOW", "NORMAL", "HIGH", "URGENT"].includes(priority)) filters.push(eq(supportCases.priority, priority));
+  const rows = await db.select().from(supportCases).where(filters.length ? and(...filters) : undefined).orderBy(desc(supportCases.updatedAt));
+  return res.json(rows.map(publicSupportCase));
+});
+router.post("/moderator/support-cases", requireRole("MODERATOR"), async (req, res) => {
+  const subject = String(req.body?.subject ?? "").trim();
+  const description = String(req.body?.description ?? "").trim();
+  const category = String(req.body?.category ?? "GENERAL").toUpperCase();
+  const priority = String(req.body?.priority ?? "NORMAL").toUpperCase();
+  if (subject.length < 3 || description.length < 3 || !["GENERAL", "APPLICATION", "ACCOUNT", "ROOM", "SAFETY"].includes(category) || !["LOW", "NORMAL", "HIGH", "URGENT"].includes(priority)) return res.status(400).json({ error: "Provide a valid subject, description, category, and priority." });
+  const row = (await db.insert(supportCases).values({ id: `CASE-${randomBytes(5).toString("hex").toUpperCase()}`, subject, description, category, priority, applicationId: req.body?.applicationId || null, teacherId: req.body?.teacherId || null, roomCode: req.body?.roomCode || null, assignedTo: req.body?.assignedTo || null }).returning())[0];
+  return res.status(201).json(publicSupportCase(row));
+});
+router.post("/moderator/support-cases/:id/note", requireRole("MODERATOR"), async (req, res) => {
+  const id = String(req.params.id);
+  const body = String(req.body?.body ?? "").trim();
+  if (!body || body.length > 1000) return res.status(400).json({ error: "Notes must be between 1 and 1000 characters." });
+  const row = (await db.select().from(supportCases).where(eq(supportCases.id, id)).limit(1))[0];
+  if (!row) return res.status(404).json({ error: "Support case not found." });
+  const notes = (row.notes as Array<{ id: string; body: string; author: string; createdAt: string }>) || [];
+  const updated = (await db.update(supportCases).set({ notes: [...notes, { id: randomUUID(), body, author: "Moderator", createdAt: new Date().toISOString() }], status: row.status === "OPEN" ? "IN_PROGRESS" : row.status, updatedAt: new Date() }).where(eq(supportCases.id, id)).returning())[0];
+  return res.json(publicSupportCase(updated));
+});
+router.post("/moderator/support-cases/:id/status", requireRole("MODERATOR"), async (req, res) => {
+  const id = String(req.params.id);
+  const status = String(req.body?.status ?? "").toUpperCase();
+  const resolution = String(req.body?.resolution ?? "").trim() || null;
+  if (!["OPEN", "IN_PROGRESS", "WAITING_ON_APPLICANT", "RESOLVED", "CLOSED"].includes(status)) return res.status(400).json({ error: "Invalid support case status." });
+  const row = (await db.update(supportCases).set({ status, resolution, updatedAt: new Date(), resolvedAt: ["RESOLVED", "CLOSED"].includes(status) ? new Date() : null }).where(eq(supportCases.id, id)).returning())[0];
+  return row ? res.json(publicSupportCase(row)) : res.status(404).json({ error: "Support case not found." });
+});
+router.post("/reports", async (req, res) => {
+  const roomCode = String(req.body?.roomCode ?? "").trim().toUpperCase();
+  const category = String(req.body?.category ?? "OTHER").toUpperCase();
+  const details = String(req.body?.details ?? "").trim();
+  if (roomCode.length < 3 || details.length < 3 || details.length > 1000 || !["HARASSMENT", "DISRUPTION", "INAPPROPRIATE_NAME", "TECHNICAL", "OTHER"].includes(category)) return res.status(400).json({ error: "Provide a room, category, and report details." });
+  const room = (await db.select({ code: sessions.code }).from(sessions).where(eq(sessions.code, roomCode)).limit(1))[0];
+  if (!room) return res.status(404).json({ error: "Room not found." });
+  const row = (await db.insert(moderationReports).values({ id: `RPT-${randomBytes(5).toString("hex").toUpperCase()}`, roomCode, participantId: req.body?.participantId || null, participantName: req.body?.participantName || null, reporterName: req.body?.reporterName || null, category, details }).returning())[0];
+  return res.status(201).json(publicReport(row));
+});
+router.get("/moderator/reports", requireRole("MODERATOR"), async (req, res) => {
+  const status = String(req.query.status ?? "").toUpperCase();
+  const filters = [];
+  if (["OPEN", "REVIEWING", "RESOLVED", "DISMISSED"].includes(status)) filters.push(eq(moderationReports.status, status));
+  const rows = await db.select().from(moderationReports).where(filters.length ? and(...filters) : undefined).orderBy(desc(moderationReports.createdAt));
+  return res.json(rows.map(publicReport));
+});
+router.post("/moderator/reports/:id/resolve", requireRole("MODERATOR"), async (req, res) => {
+  const status = String(req.body?.status ?? "").toUpperCase();
+  if (!["RESOLVED", "DISMISSED"].includes(status)) return res.status(400).json({ error: "Invalid report resolution." });
+  const resolution = String(req.body?.resolution ?? "").trim() || null;
+  const row = (await db.update(moderationReports).set({ status, resolution, resolvedAt: new Date() }).where(eq(moderationReports.id, String(req.params.id))).returning())[0];
+  return row ? res.json(publicReport(row)) : res.status(404).json({ error: "Report not found." });
 });
 router.get("/registration-keys/:applicationId", requireRole("MODERATOR"), async (req, res) => {
   const applicationId = String(req.params.applicationId);
@@ -281,13 +375,13 @@ router.get("/moderator/sessions", requireRole("MODERATOR"), async (_req, res) =>
 router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async (req, res) => {
   const code = String(req.params.code).toUpperCase();
   const action = String(req.body?.action ?? "");
-  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT", "LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "BAN_PARTICIPANT", "SEND_ANNOUNCEMENT", "SKIP_QUESTION", "RESTART_QUESTION", "EXTEND_TIME"];
+  const allowed = ["END", "PAUSE", "RESUME", "FREEZE_JOINS", "UNFREEZE_JOINS", "REMOVE_PARTICIPANT", "LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "TEMP_LOCK", "TEMP_MUTE", "WARN_PARTICIPANT", "BAN_PARTICIPANT", "UNBAN_PARTICIPANT", "SEND_ANNOUNCEMENT", "SKIP_QUESTION", "RESTART_QUESTION", "EXTEND_TIME"];
   if (!allowed.includes(action)) return res.status(400).json({ error: "Invalid moderation action" });
   const row = (await db.select().from(sessions).where(eq(sessions.code, code)).limit(1))[0];
   if (!row) return res.status(404).json({ error: "Session not found" });
   const current = session(req)!;
   if (current.role === "TEACHER" && row.teacherId !== current.userId) return res.status(403).json({ error: "You do not own this quiz session" });
-  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; locked?: boolean; muted?: boolean }>) || [];
+  const people = (row.participants as Array<{ id: string; name: string; answered: number; score: number; locked?: boolean; muted?: boolean; warningCount?: number; lockedUntil?: string | null; mutedUntil?: string | null }>) || [];
   const quiz = (await db.select().from(quizzes).where(eq(quizzes.id, row.quizId)).limit(1))[0];
   if (!quiz) return res.status(404).json({ error: "Quiz not found" });
   const questions = quiz.questions as Array<{ correctIndex: number }>;
@@ -308,7 +402,7 @@ router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async
     if (!participantId || !people.some((person) => person.id === participantId)) return res.status(404).json({ error: "Participant not found" });
     update = { participants: people.filter((person) => person.id !== participantId) };
   }
-  if (["LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "BAN_PARTICIPANT"].includes(action)) {
+  if (["LOCK_PARTICIPANT", "UNLOCK_PARTICIPANT", "MUTE_PARTICIPANT", "UNMUTE_PARTICIPANT", "TEMP_LOCK", "TEMP_MUTE", "WARN_PARTICIPANT", "BAN_PARTICIPANT"].includes(action)) {
     const participantId = String(req.body?.participantId ?? "");
     const person = people.find((candidate) => candidate.id === participantId);
     if (!person) return res.status(404).json({ error: "Participant not found" });
@@ -319,12 +413,22 @@ router.post("/moderator/sessions/:code/action", requireTeacherOrModerator, async
         bannedNames: [...new Set([...bannedNames, person.name.trim().toLowerCase()])],
       };
     } else {
-      if (action === "LOCK_PARTICIPANT") person.locked = true;
-      if (action === "UNLOCK_PARTICIPANT") person.locked = false;
-      if (action === "MUTE_PARTICIPANT") person.muted = true;
-      if (action === "UNMUTE_PARTICIPANT") person.muted = false;
+      const seconds = Number(req.body?.seconds ?? 600);
+      if (["TEMP_LOCK", "TEMP_MUTE"].includes(action) && (!Number.isInteger(seconds) || seconds < 5 || seconds > 3600)) return res.status(400).json({ error: "Timed controls must be between 5 seconds and 1 hour." });
+      if (action === "LOCK_PARTICIPANT") { person.locked = true; person.lockedUntil = null; }
+      if (action === "UNLOCK_PARTICIPANT") { person.locked = false; person.lockedUntil = null; }
+      if (action === "TEMP_LOCK") { person.locked = true; person.lockedUntil = new Date(Date.now() + seconds * 1000).toISOString(); }
+      if (action === "MUTE_PARTICIPANT") { person.muted = true; person.mutedUntil = null; }
+      if (action === "UNMUTE_PARTICIPANT") { person.muted = false; person.mutedUntil = null; }
+      if (action === "TEMP_MUTE") { person.muted = true; person.mutedUntil = new Date(Date.now() + seconds * 1000).toISOString(); }
+      if (action === "WARN_PARTICIPANT") person.warningCount = (person.warningCount ?? 0) + 1;
       update = { participants: people };
     }
+  }
+  if (action === "UNBAN_PARTICIPANT") {
+    const name = String(req.body?.participantName ?? "").trim().toLowerCase();
+    if (!name) return res.status(400).json({ error: "Participant name is required." });
+    update = { bannedNames: ((row.bannedNames as string[]) || []).filter((bannedName) => bannedName !== name) };
   }
   if (action === "SEND_ANNOUNCEMENT") {
     const message = String(req.body?.message ?? "").trim();

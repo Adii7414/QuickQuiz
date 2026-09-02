@@ -19,6 +19,7 @@ export const applications = pgTable("teacher_applications", {
   phone: text("phone"),
   applicantRole: text("applicant_role"),
   status: text("status").notNull().default("PENDING"),
+  reviewNote: text("review_note"),
   reviewedAt: timestamp("reviewed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -65,4 +66,36 @@ export const sessions = pgTable("quiz_sessions", {
   bannedNames: jsonb("banned_names").notNull().default([]),
   announcements: jsonb("announcements").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const supportCases = pgTable("support_cases", {
+  id: text("id").primaryKey(),
+  subject: text("subject").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull().default("GENERAL"),
+  priority: text("priority").notNull().default("NORMAL"),
+  status: text("status").notNull().default("OPEN"),
+  applicationId: text("application_id"),
+  teacherId: text("teacher_id"),
+  roomCode: text("room_code"),
+  assignedTo: text("assigned_to"),
+  notes: jsonb("notes").notNull().default([]),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const moderationReports = pgTable("moderation_reports", {
+  id: text("id").primaryKey(),
+  roomCode: text("room_code").notNull(),
+  participantId: text("participant_id"),
+  participantName: text("participant_name"),
+  reporterName: text("reporter_name"),
+  category: text("category").notNull().default("OTHER"),
+  details: text("details").notNull(),
+  status: text("status").notNull().default("OPEN"),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
 });

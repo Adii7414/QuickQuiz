@@ -14,6 +14,8 @@ tags:
   - name: applications
   - name: quizzes
   - name: sessions
+  - name: support
+  - name: reports
 paths:
   /healthz:
     get:
@@ -142,6 +144,143 @@ paths:
               schema:
                 $ref: "#/components/schemas/ApplicationStatus"
         "404": { description: Application not found }
+  /moderator/dashboard:
+    get:
+      operationId: getModeratorDashboard
+      tags: [support]
+      responses:
+        "200":
+          description: Moderator and support queue summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModeratorDashboard"
+        "403": { description: Moderator access required }
+  /moderator/support-cases:
+    get:
+      operationId: listSupportCases
+      tags: [support]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+        - { name: priority, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Support cases
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SupportCase" }
+        "403": { description: Moderator access required }
+    post:
+      operationId: createSupportCase
+      tags: [support]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportCaseInput"
+      responses:
+        "201":
+          description: Created support case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportCase"
+        "403": { description: Moderator access required }
+  /moderator/support-cases/{id}/note:
+    post:
+      operationId: addSupportCaseNote
+      tags: [support]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportCaseNoteInput"
+      responses:
+        "200":
+          description: Updated support case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportCase"
+        "403": { description: Moderator access required }
+  /moderator/support-cases/{id}/status:
+    post:
+      operationId: updateSupportCaseStatus
+      tags: [support]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SupportCaseStatusInput"
+      responses:
+        "200":
+          description: Updated support case
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportCase"
+        "403": { description: Moderator access required }
+  /reports:
+    post:
+      operationId: createModerationReport
+      tags: [reports]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportInput"
+      responses:
+        "201":
+          description: Report submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModerationReport"
+  /moderator/reports:
+    get:
+      operationId: listModerationReports
+      tags: [reports]
+      parameters:
+        - { name: status, in: query, schema: { type: string } }
+      responses:
+        "200":
+          description: Moderation reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ModerationReport" }
+        "403": { description: Moderator access required }
+  /moderator/reports/{id}/resolve:
+    post:
+      operationId: resolveModerationReport
+      tags: [reports]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportResolutionInput"
+      responses:
+        "200":
+          description: Resolved report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ModerationReport"
+        "403": { description: Moderator access required }
   /applications/{id}/decision:
     post:
       operationId: decideTeacherApplication
@@ -576,9 +715,10 @@ components:
       required: [id, status, submittedAt, reviewedAt]
       properties:
         id: { type: string }
-        status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+        status: { type: string, enum: [PENDING, NEEDS_INFO, APPROVED, REJECTED] }
         submittedAt: { type: string }
         reviewedAt: { type: ["string", "null"] }
+        reviewNote: { type: ["string", "null"] }
     Announcement:
       type: object
       required: [id, message, createdAt]
@@ -593,14 +733,16 @@ components:
           required: [id, status, submittedAt]
           properties:
             id: { type: string }
-            status: { type: string, enum: [PENDING, APPROVED, REJECTED] }
+            status: { type: string, enum: [PENDING, NEEDS_INFO, APPROVED, REJECTED] }
             submittedAt: { type: string }
             reviewedAt: { type: ["string", "null"] }
+            reviewNote: { type: ["string", "null"] }
     ApplicationDecisionInput:
       type: object
       required: [decision]
       properties:
-        decision: { type: string, enum: [APPROVED, REJECTED] }
+        decision: { type: string, enum: [APPROVED, REJECTED, NEEDS_INFO] }
+        reviewNote: { type: string, maxLength: 500 }
     DecisionResult:
       type: object
       required: [application]
@@ -649,6 +791,9 @@ components:
         percentage: { type: number }
         locked: { type: boolean }
         muted: { type: boolean }
+        warningCount: { type: number }
+        lockedUntil: { type: ["string", "null"] }
+        mutedUntil: { type: ["string", "null"] }
     ModerationSession:
       type: object
       required: [code, quizTitle, teacherName, teacherEmail, status, participantCount, currentQuestion, questionCount, createdAt, joinFrozen, announcements, liveQuestion, questionStats, participants]
@@ -692,12 +837,16 @@ components:
         participants:
           type: array
           items: { $ref: "#/components/schemas/ModerationSessionParticipant" }
+        bannedNames:
+          type: array
+          items: { type: string }
     ModerationActionInput:
       type: object
       required: [action]
       properties:
-        action: { type: string, enum: [END, PAUSE, RESUME, FREEZE_JOINS, UNFREEZE_JOINS, REMOVE_PARTICIPANT, LOCK_PARTICIPANT, UNLOCK_PARTICIPANT, MUTE_PARTICIPANT, UNMUTE_PARTICIPANT, BAN_PARTICIPANT, SEND_ANNOUNCEMENT, SKIP_QUESTION, RESTART_QUESTION, EXTEND_TIME] }
+        action: { type: string, enum: [END, PAUSE, RESUME, FREEZE_JOINS, UNFREEZE_JOINS, REMOVE_PARTICIPANT, LOCK_PARTICIPANT, UNLOCK_PARTICIPANT, MUTE_PARTICIPANT, UNMUTE_PARTICIPANT, TEMP_LOCK, TEMP_MUTE, WARN_PARTICIPANT, BAN_PARTICIPANT, UNBAN_PARTICIPANT, SEND_ANNOUNCEMENT, SKIP_QUESTION, RESTART_QUESTION, EXTEND_TIME] }
         participantId: { type: string }
+        participantName: { type: string }
         message: { type: string, maxLength: 280 }
         seconds: { type: number, minimum: 5, maximum: 120 }
     ModerationUser:
@@ -715,6 +864,89 @@ components:
       required: [status]
       properties:
         status: { type: string, enum: [ACTIVE, SUSPENDED] }
+    SupportCaseInput:
+      type: object
+      required: [subject, description, category, priority]
+      properties:
+        subject: { type: string, minLength: 3 }
+        description: { type: string, minLength: 3 }
+        category: { type: string, enum: [GENERAL, APPLICATION, ACCOUNT, ROOM, SAFETY] }
+        priority: { type: string, enum: [LOW, NORMAL, HIGH, URGENT] }
+        applicationId: { type: string }
+        teacherId: { type: string }
+        roomCode: { type: string }
+        assignedTo: { type: string }
+    SupportCase:
+      allOf:
+        - $ref: "#/components/schemas/SupportCaseInput"
+        - type: object
+          required: [id, status, notes, createdAt, updatedAt]
+          properties:
+            id: { type: string }
+            status: { type: string, enum: [OPEN, IN_PROGRESS, WAITING_ON_APPLICANT, RESOLVED, CLOSED] }
+            notes:
+              type: array
+              items: { $ref: "#/components/schemas/SupportCaseNote" }
+            resolution: { type: ["string", "null"] }
+            createdAt: { type: string }
+            updatedAt: { type: string }
+            resolvedAt: { type: ["string", "null"] }
+    SupportCaseNote:
+      type: object
+      required: [id, body, author, createdAt]
+      properties:
+        id: { type: string }
+        body: { type: string }
+        author: { type: string }
+        createdAt: { type: string }
+    SupportCaseNoteInput:
+      type: object
+      required: [body]
+      properties:
+        body: { type: string, minLength: 1, maxLength: 1000 }
+    SupportCaseStatusInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [OPEN, IN_PROGRESS, WAITING_ON_APPLICANT, RESOLVED, CLOSED] }
+        resolution: { type: string, maxLength: 1000 }
+    ReportInput:
+      type: object
+      required: [roomCode, category, details]
+      properties:
+        roomCode: { type: string, minLength: 3 }
+        participantId: { type: string }
+        participantName: { type: string }
+        reporterName: { type: string }
+        category: { type: string, enum: [HARASSMENT, DISRUPTION, INAPPROPRIATE_NAME, TECHNICAL, OTHER] }
+        details: { type: string, minLength: 3, maxLength: 1000 }
+    ModerationReport:
+      allOf:
+        - $ref: "#/components/schemas/ReportInput"
+        - type: object
+          required: [id, status, createdAt]
+          properties:
+            id: { type: string }
+            status: { type: string, enum: [OPEN, REVIEWING, RESOLVED, DISMISSED] }
+            resolution: { type: ["string", "null"] }
+            createdAt: { type: string }
+            resolvedAt: { type: ["string", "null"] }
+    ReportResolutionInput:
+      type: object
+      required: [status]
+      properties:
+        status: { type: string, enum: [RESOLVED, DISMISSED] }
+        resolution: { type: string, maxLength: 1000 }
+    ModeratorDashboard:
+      type: object
+      required: [pendingApplications, openCases, openReports, activeRooms, activeTeachers, suspendedTeachers]
+      properties:
+        pendingApplications: { type: number }
+        openCases: { type: number }
+        openReports: { type: number }
+        activeRooms: { type: number }
+        activeTeachers: { type: number }
+        suspendedTeachers: { type: number }
     QuizInput:
       type: object
       required: [title, description, questions]
@@ -811,6 +1043,9 @@ components:
         percentage: { type: number }
         locked: { type: boolean }
         muted: { type: boolean }
+        warningCount: { type: number }
+        lockedUntil: { type: ["string", "null"] }
+        mutedUntil: { type: ["string", "null"] }
     AnswerInput:
       type: object
       required: [participantId, questionIndex, answerIndex]

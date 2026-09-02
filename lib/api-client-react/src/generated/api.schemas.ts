@@ -67,6 +67,7 @@ export type ApplicationStatusStatus = typeof ApplicationStatusStatus[keyof typeo
 
 export const ApplicationStatusStatus = {
   PENDING: 'PENDING',
+  NEEDS_INFO: 'NEEDS_INFO',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
 } as const;
@@ -77,6 +78,8 @@ export interface ApplicationStatus {
   submittedAt: string;
   /** @nullable */
   reviewedAt: string | null;
+  /** @nullable */
+  reviewNote?: string | null;
 }
 
 export interface Announcement {
@@ -90,6 +93,7 @@ export type TeacherApplicationStatus = typeof TeacherApplicationStatus[keyof typ
 
 export const TeacherApplicationStatus = {
   PENDING: 'PENDING',
+  NEEDS_INFO: 'NEEDS_INFO',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
 } as const;
@@ -100,6 +104,8 @@ export type TeacherApplication = TeacherApplicationInput & ({
   submittedAt: string;
   /** @nullable */
   reviewedAt?: string | null;
+  /** @nullable */
+  reviewNote?: string | null;
 });
 
 export type ApplicationDecisionInputDecision = typeof ApplicationDecisionInputDecision[keyof typeof ApplicationDecisionInputDecision];
@@ -108,10 +114,13 @@ export type ApplicationDecisionInputDecision = typeof ApplicationDecisionInputDe
 export const ApplicationDecisionInputDecision = {
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
+  NEEDS_INFO: 'NEEDS_INFO',
 } as const;
 
 export interface ApplicationDecisionInput {
   decision: ApplicationDecisionInputDecision;
+  /** @maxLength 500 */
+  reviewNote?: string;
 }
 
 export interface DecisionResult {
@@ -177,6 +186,11 @@ export interface ModerationSessionParticipant {
   percentage: number;
   locked?: boolean;
   muted?: boolean;
+  warningCount?: number;
+  /** @nullable */
+  lockedUntil?: string | null;
+  /** @nullable */
+  mutedUntil?: string | null;
 }
 
 export type ModerationSessionStatus = typeof ModerationSessionStatus[keyof typeof ModerationSessionStatus];
@@ -218,6 +232,7 @@ export interface ModerationSession {
   liveQuestion: ModerationSessionLiveQuestion;
   questionStats: ModerationSessionQuestionStatsItem[];
   participants: ModerationSessionParticipant[];
+  bannedNames?: string[];
 }
 
 export type ModerationActionInputAction = typeof ModerationActionInputAction[keyof typeof ModerationActionInputAction];
@@ -234,7 +249,11 @@ export const ModerationActionInputAction = {
   UNLOCK_PARTICIPANT: 'UNLOCK_PARTICIPANT',
   MUTE_PARTICIPANT: 'MUTE_PARTICIPANT',
   UNMUTE_PARTICIPANT: 'UNMUTE_PARTICIPANT',
+  TEMP_LOCK: 'TEMP_LOCK',
+  TEMP_MUTE: 'TEMP_MUTE',
+  WARN_PARTICIPANT: 'WARN_PARTICIPANT',
   BAN_PARTICIPANT: 'BAN_PARTICIPANT',
+  UNBAN_PARTICIPANT: 'UNBAN_PARTICIPANT',
   SEND_ANNOUNCEMENT: 'SEND_ANNOUNCEMENT',
   SKIP_QUESTION: 'SKIP_QUESTION',
   RESTART_QUESTION: 'RESTART_QUESTION',
@@ -244,6 +263,7 @@ export const ModerationActionInputAction = {
 export interface ModerationActionInput {
   action: ModerationActionInputAction;
   participantId?: string;
+  participantName?: string;
   /** @maxLength 280 */
   message?: string;
   /**
@@ -289,6 +309,163 @@ export const ModerationUserStatusInputStatus = {
 
 export interface ModerationUserStatusInput {
   status: ModerationUserStatusInputStatus;
+}
+
+export type SupportCaseInputCategory = typeof SupportCaseInputCategory[keyof typeof SupportCaseInputCategory];
+
+
+export const SupportCaseInputCategory = {
+  GENERAL: 'GENERAL',
+  APPLICATION: 'APPLICATION',
+  ACCOUNT: 'ACCOUNT',
+  ROOM: 'ROOM',
+  SAFETY: 'SAFETY',
+} as const;
+
+export type SupportCaseInputPriority = typeof SupportCaseInputPriority[keyof typeof SupportCaseInputPriority];
+
+
+export const SupportCaseInputPriority = {
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT',
+} as const;
+
+export interface SupportCaseInput {
+  /** @minLength 3 */
+  subject: string;
+  /** @minLength 3 */
+  description: string;
+  category: SupportCaseInputCategory;
+  priority: SupportCaseInputPriority;
+  applicationId?: string;
+  teacherId?: string;
+  roomCode?: string;
+  assignedTo?: string;
+}
+
+export type SupportCaseStatus = typeof SupportCaseStatus[keyof typeof SupportCaseStatus];
+
+
+export const SupportCaseStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  WAITING_ON_APPLICANT: 'WAITING_ON_APPLICANT',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+} as const;
+
+export interface SupportCaseNote {
+  id: string;
+  body: string;
+  author: string;
+  createdAt: string;
+}
+
+export type SupportCase = SupportCaseInput & ({
+  id: string;
+  status: SupportCaseStatus;
+  notes: SupportCaseNote[];
+  /** @nullable */
+  resolution?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+});
+
+export interface SupportCaseNoteInput {
+  /**
+     * @minLength 1
+     * @maxLength 1000
+     */
+  body: string;
+}
+
+export type SupportCaseStatusInputStatus = typeof SupportCaseStatusInputStatus[keyof typeof SupportCaseStatusInputStatus];
+
+
+export const SupportCaseStatusInputStatus = {
+  OPEN: 'OPEN',
+  IN_PROGRESS: 'IN_PROGRESS',
+  WAITING_ON_APPLICANT: 'WAITING_ON_APPLICANT',
+  RESOLVED: 'RESOLVED',
+  CLOSED: 'CLOSED',
+} as const;
+
+export interface SupportCaseStatusInput {
+  status: SupportCaseStatusInputStatus;
+  /** @maxLength 1000 */
+  resolution?: string;
+}
+
+export type ReportInputCategory = typeof ReportInputCategory[keyof typeof ReportInputCategory];
+
+
+export const ReportInputCategory = {
+  HARASSMENT: 'HARASSMENT',
+  DISRUPTION: 'DISRUPTION',
+  INAPPROPRIATE_NAME: 'INAPPROPRIATE_NAME',
+  TECHNICAL: 'TECHNICAL',
+  OTHER: 'OTHER',
+} as const;
+
+export interface ReportInput {
+  /** @minLength 3 */
+  roomCode: string;
+  participantId?: string;
+  participantName?: string;
+  reporterName?: string;
+  category: ReportInputCategory;
+  /**
+     * @minLength 3
+     * @maxLength 1000
+     */
+  details: string;
+}
+
+export type ModerationReportStatus = typeof ModerationReportStatus[keyof typeof ModerationReportStatus];
+
+
+export const ModerationReportStatus = {
+  OPEN: 'OPEN',
+  REVIEWING: 'REVIEWING',
+  RESOLVED: 'RESOLVED',
+  DISMISSED: 'DISMISSED',
+} as const;
+
+export type ModerationReport = ReportInput & ({
+  id: string;
+  status: ModerationReportStatus;
+  /** @nullable */
+  resolution?: string | null;
+  createdAt: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+});
+
+export type ReportResolutionInputStatus = typeof ReportResolutionInputStatus[keyof typeof ReportResolutionInputStatus];
+
+
+export const ReportResolutionInputStatus = {
+  RESOLVED: 'RESOLVED',
+  DISMISSED: 'DISMISSED',
+} as const;
+
+export interface ReportResolutionInput {
+  status: ReportResolutionInputStatus;
+  /** @maxLength 1000 */
+  resolution?: string;
+}
+
+export interface ModeratorDashboard {
+  pendingApplications: number;
+  openCases: number;
+  openReports: number;
+  activeRooms: number;
+  activeTeachers: number;
+  suspendedTeachers: number;
 }
 
 export interface QuestionInput {
@@ -365,6 +542,11 @@ export interface Participant {
   percentage?: number;
   locked?: boolean;
   muted?: boolean;
+  warningCount?: number;
+  /** @nullable */
+  lockedUntil?: string | null;
+  /** @nullable */
+  mutedUntil?: string | null;
 }
 
 export interface QuizSession {
@@ -444,6 +626,15 @@ export interface QuizResults {
 export type ListTeacherApplicationsParams = {
 status?: string;
 search?: string;
+};
+
+export type ListSupportCasesParams = {
+status?: string;
+priority?: string;
+};
+
+export type ListModerationReportsParams = {
+status?: string;
 };
 
 export type ListModeratorUsersParams = {

@@ -108,9 +108,10 @@ export const ListTeacherApplicationsResponseItem = zod.object({
   "role": zod.string().optional()
 }).and(zod.object({
   "id": zod.string(),
-  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  "status": zod.enum(['PENDING', 'NEEDS_INFO', 'APPROVED', 'REJECTED']),
   "submittedAt": zod.string(),
-  "reviewedAt": zod.string().nullish()
+  "reviewedAt": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
 }))
 export const ListTeacherApplicationsResponse = zod.array(ListTeacherApplicationsResponseItem)
 
@@ -136,9 +137,10 @@ export const GetTeacherApplicationResponse = zod.object({
   "role": zod.string().optional()
 }).and(zod.object({
   "id": zod.string(),
-  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  "status": zod.enum(['PENDING', 'NEEDS_INFO', 'APPROVED', 'REJECTED']),
   "submittedAt": zod.string(),
-  "reviewedAt": zod.string().nullish()
+  "reviewedAt": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
 }))
 
 
@@ -148,18 +150,309 @@ export const GetApplicationStatusParams = zod.object({
 
 export const GetApplicationStatusResponse = zod.object({
   "id": zod.string(),
-  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  "status": zod.enum(['PENDING', 'NEEDS_INFO', 'APPROVED', 'REJECTED']),
   "submittedAt": zod.string(),
-  "reviewedAt": zod.string().nullable()
+  "reviewedAt": zod.string().nullable(),
+  "reviewNote": zod.string().nullish()
 })
+
+
+export const GetModeratorDashboardResponse = zod.object({
+  "pendingApplications": zod.number(),
+  "openCases": zod.number(),
+  "openReports": zod.number(),
+  "activeRooms": zod.number(),
+  "activeTeachers": zod.number(),
+  "suspendedTeachers": zod.number()
+})
+
+
+export const ListSupportCasesQueryParams = zod.object({
+  "status": zod.coerce.string().optional(),
+  "priority": zod.coerce.string().optional()
+})
+
+export const listSupportCasesResponseOneSubjectMin = 3;
+
+export const listSupportCasesResponseOneDescriptionMin = 3;
+
+
+
+export const ListSupportCasesResponseItem = zod.object({
+  "subject": zod.string().min(listSupportCasesResponseOneSubjectMin),
+  "description": zod.string().min(listSupportCasesResponseOneDescriptionMin),
+  "category": zod.enum(['GENERAL', 'APPLICATION', 'ACCOUNT', 'ROOM', 'SAFETY']),
+  "priority": zod.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+  "applicationId": zod.string().optional(),
+  "teacherId": zod.string().optional(),
+  "roomCode": zod.string().optional(),
+  "assignedTo": zod.string().optional()
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT', 'RESOLVED', 'CLOSED']),
+  "notes": zod.array(zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "author": zod.string(),
+  "createdAt": zod.string()
+})),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+export const ListSupportCasesResponse = zod.array(ListSupportCasesResponseItem)
+
+
+export const createSupportCaseBodySubjectMin = 3;
+
+export const createSupportCaseBodyDescriptionMin = 3;
+
+
+
+export const CreateSupportCaseBody = zod.object({
+  "subject": zod.string().min(createSupportCaseBodySubjectMin),
+  "description": zod.string().min(createSupportCaseBodyDescriptionMin),
+  "category": zod.enum(['GENERAL', 'APPLICATION', 'ACCOUNT', 'ROOM', 'SAFETY']),
+  "priority": zod.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+  "applicationId": zod.string().optional(),
+  "teacherId": zod.string().optional(),
+  "roomCode": zod.string().optional(),
+  "assignedTo": zod.string().optional()
+})
+
+export const createSupportCaseResponseOneSubjectMin = 3;
+
+export const createSupportCaseResponseOneDescriptionMin = 3;
+
+
+
+export const CreateSupportCaseResponse = zod.object({
+  "subject": zod.string().min(createSupportCaseResponseOneSubjectMin),
+  "description": zod.string().min(createSupportCaseResponseOneDescriptionMin),
+  "category": zod.enum(['GENERAL', 'APPLICATION', 'ACCOUNT', 'ROOM', 'SAFETY']),
+  "priority": zod.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+  "applicationId": zod.string().optional(),
+  "teacherId": zod.string().optional(),
+  "roomCode": zod.string().optional(),
+  "assignedTo": zod.string().optional()
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT', 'RESOLVED', 'CLOSED']),
+  "notes": zod.array(zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "author": zod.string(),
+  "createdAt": zod.string()
+})),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+
+
+export const AddSupportCaseNoteParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const addSupportCaseNoteBodyBodyMax = 1000;
+
+
+
+export const AddSupportCaseNoteBody = zod.object({
+  "body": zod.string().min(1).max(addSupportCaseNoteBodyBodyMax)
+})
+
+export const addSupportCaseNoteResponseOneSubjectMin = 3;
+
+export const addSupportCaseNoteResponseOneDescriptionMin = 3;
+
+
+
+export const AddSupportCaseNoteResponse = zod.object({
+  "subject": zod.string().min(addSupportCaseNoteResponseOneSubjectMin),
+  "description": zod.string().min(addSupportCaseNoteResponseOneDescriptionMin),
+  "category": zod.enum(['GENERAL', 'APPLICATION', 'ACCOUNT', 'ROOM', 'SAFETY']),
+  "priority": zod.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+  "applicationId": zod.string().optional(),
+  "teacherId": zod.string().optional(),
+  "roomCode": zod.string().optional(),
+  "assignedTo": zod.string().optional()
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT', 'RESOLVED', 'CLOSED']),
+  "notes": zod.array(zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "author": zod.string(),
+  "createdAt": zod.string()
+})),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+
+
+export const UpdateSupportCaseStatusParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const updateSupportCaseStatusBodyResolutionMax = 1000;
+
+
+
+export const UpdateSupportCaseStatusBody = zod.object({
+  "status": zod.enum(['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT', 'RESOLVED', 'CLOSED']),
+  "resolution": zod.string().max(updateSupportCaseStatusBodyResolutionMax).optional()
+})
+
+export const updateSupportCaseStatusResponseOneSubjectMin = 3;
+
+export const updateSupportCaseStatusResponseOneDescriptionMin = 3;
+
+
+
+export const UpdateSupportCaseStatusResponse = zod.object({
+  "subject": zod.string().min(updateSupportCaseStatusResponseOneSubjectMin),
+  "description": zod.string().min(updateSupportCaseStatusResponseOneDescriptionMin),
+  "category": zod.enum(['GENERAL', 'APPLICATION', 'ACCOUNT', 'ROOM', 'SAFETY']),
+  "priority": zod.enum(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+  "applicationId": zod.string().optional(),
+  "teacherId": zod.string().optional(),
+  "roomCode": zod.string().optional(),
+  "assignedTo": zod.string().optional()
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'IN_PROGRESS', 'WAITING_ON_APPLICANT', 'RESOLVED', 'CLOSED']),
+  "notes": zod.array(zod.object({
+  "id": zod.string(),
+  "body": zod.string(),
+  "author": zod.string(),
+  "createdAt": zod.string()
+})),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+
+
+export const createModerationReportBodyRoomCodeMin = 3;
+
+export const createModerationReportBodyDetailsMin = 3;
+export const createModerationReportBodyDetailsMax = 1000;
+
+
+
+export const CreateModerationReportBody = zod.object({
+  "roomCode": zod.string().min(createModerationReportBodyRoomCodeMin),
+  "participantId": zod.string().optional(),
+  "participantName": zod.string().optional(),
+  "reporterName": zod.string().optional(),
+  "category": zod.enum(['HARASSMENT', 'DISRUPTION', 'INAPPROPRIATE_NAME', 'TECHNICAL', 'OTHER']),
+  "details": zod.string().min(createModerationReportBodyDetailsMin).max(createModerationReportBodyDetailsMax)
+})
+
+export const createModerationReportResponseOneRoomCodeMin = 3;
+
+export const createModerationReportResponseOneDetailsMin = 3;
+export const createModerationReportResponseOneDetailsMax = 1000;
+
+
+
+export const CreateModerationReportResponse = zod.object({
+  "roomCode": zod.string().min(createModerationReportResponseOneRoomCodeMin),
+  "participantId": zod.string().optional(),
+  "participantName": zod.string().optional(),
+  "reporterName": zod.string().optional(),
+  "category": zod.enum(['HARASSMENT', 'DISRUPTION', 'INAPPROPRIATE_NAME', 'TECHNICAL', 'OTHER']),
+  "details": zod.string().min(createModerationReportResponseOneDetailsMin).max(createModerationReportResponseOneDetailsMax)
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED']),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+
+
+export const ListModerationReportsQueryParams = zod.object({
+  "status": zod.coerce.string().optional()
+})
+
+export const listModerationReportsResponseOneRoomCodeMin = 3;
+
+export const listModerationReportsResponseOneDetailsMin = 3;
+export const listModerationReportsResponseOneDetailsMax = 1000;
+
+
+
+export const ListModerationReportsResponseItem = zod.object({
+  "roomCode": zod.string().min(listModerationReportsResponseOneRoomCodeMin),
+  "participantId": zod.string().optional(),
+  "participantName": zod.string().optional(),
+  "reporterName": zod.string().optional(),
+  "category": zod.enum(['HARASSMENT', 'DISRUPTION', 'INAPPROPRIATE_NAME', 'TECHNICAL', 'OTHER']),
+  "details": zod.string().min(listModerationReportsResponseOneDetailsMin).max(listModerationReportsResponseOneDetailsMax)
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED']),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
+export const ListModerationReportsResponse = zod.array(ListModerationReportsResponseItem)
+
+
+export const ResolveModerationReportParams = zod.object({
+  "id": zod.coerce.string()
+})
+
+export const resolveModerationReportBodyResolutionMax = 1000;
+
+
+
+export const ResolveModerationReportBody = zod.object({
+  "status": zod.enum(['RESOLVED', 'DISMISSED']),
+  "resolution": zod.string().max(resolveModerationReportBodyResolutionMax).optional()
+})
+
+export const resolveModerationReportResponseOneRoomCodeMin = 3;
+
+export const resolveModerationReportResponseOneDetailsMin = 3;
+export const resolveModerationReportResponseOneDetailsMax = 1000;
+
+
+
+export const ResolveModerationReportResponse = zod.object({
+  "roomCode": zod.string().min(resolveModerationReportResponseOneRoomCodeMin),
+  "participantId": zod.string().optional(),
+  "participantName": zod.string().optional(),
+  "reporterName": zod.string().optional(),
+  "category": zod.enum(['HARASSMENT', 'DISRUPTION', 'INAPPROPRIATE_NAME', 'TECHNICAL', 'OTHER']),
+  "details": zod.string().min(resolveModerationReportResponseOneDetailsMin).max(resolveModerationReportResponseOneDetailsMax)
+}).and(zod.object({
+  "id": zod.string(),
+  "status": zod.enum(['OPEN', 'REVIEWING', 'RESOLVED', 'DISMISSED']),
+  "resolution": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "resolvedAt": zod.string().nullish()
+}))
 
 
 export const DecideTeacherApplicationParams = zod.object({
   "id": zod.coerce.string()
 })
 
+export const decideTeacherApplicationBodyReviewNoteMax = 500;
+
+
+
 export const DecideTeacherApplicationBody = zod.object({
-  "decision": zod.enum(['APPROVED', 'REJECTED'])
+  "decision": zod.enum(['APPROVED', 'REJECTED', 'NEEDS_INFO']),
+  "reviewNote": zod.string().max(decideTeacherApplicationBodyReviewNoteMax).optional()
 })
 
 export const decideTeacherApplicationResponseApplicationOneFullNameMin = 2;
@@ -180,9 +473,10 @@ export const DecideTeacherApplicationResponse = zod.object({
   "role": zod.string().optional()
 }).and(zod.object({
   "id": zod.string(),
-  "status": zod.enum(['PENDING', 'APPROVED', 'REJECTED']),
+  "status": zod.enum(['PENDING', 'NEEDS_INFO', 'APPROVED', 'REJECTED']),
   "submittedAt": zod.string(),
-  "reviewedAt": zod.string().nullish()
+  "reviewedAt": zod.string().nullish(),
+  "reviewNote": zod.string().nullish()
 })),
   "registrationKey": zod.string().nullish(),
   "expiresAt": zod.string().nullish()
@@ -288,8 +582,12 @@ export const ListModeratorSessionsResponseItem = zod.object({
   "score": zod.number(),
   "percentage": zod.number(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
-}))
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
+})),
+  "bannedNames": zod.array(zod.string()).optional()
 })
 export const ListModeratorSessionsResponse = zod.array(ListModeratorSessionsResponseItem)
 
@@ -306,8 +604,9 @@ export const moderateQuizSessionBodySecondsMax = 120;
 
 
 export const ModerateQuizSessionBody = zod.object({
-  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT', 'LOCK_PARTICIPANT', 'UNLOCK_PARTICIPANT', 'MUTE_PARTICIPANT', 'UNMUTE_PARTICIPANT', 'BAN_PARTICIPANT', 'SEND_ANNOUNCEMENT', 'SKIP_QUESTION', 'RESTART_QUESTION', 'EXTEND_TIME']),
+  "action": zod.enum(['END', 'PAUSE', 'RESUME', 'FREEZE_JOINS', 'UNFREEZE_JOINS', 'REMOVE_PARTICIPANT', 'LOCK_PARTICIPANT', 'UNLOCK_PARTICIPANT', 'MUTE_PARTICIPANT', 'UNMUTE_PARTICIPANT', 'TEMP_LOCK', 'TEMP_MUTE', 'WARN_PARTICIPANT', 'BAN_PARTICIPANT', 'UNBAN_PARTICIPANT', 'SEND_ANNOUNCEMENT', 'SKIP_QUESTION', 'RESTART_QUESTION', 'EXTEND_TIME']),
   "participantId": zod.string().optional(),
+  "participantName": zod.string().optional(),
   "message": zod.string().max(moderateQuizSessionBodyMessageMax).optional(),
   "seconds": zod.number().min(moderateQuizSessionBodySecondsMin).max(moderateQuizSessionBodySecondsMax).optional()
 })
@@ -347,8 +646,12 @@ export const ModerateQuizSessionResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
-}))
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
+})),
+  "bannedNames": zod.array(zod.string()).optional()
 })
 
 
@@ -746,7 +1049,10 @@ export const HostQuizResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })),
   "quiz": zod.object({
   "title": zod.string().min(hostQuizResponseQuizOneTitleMin),
@@ -811,7 +1117,10 @@ export const GetQuizSessionResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })),
   "quiz": zod.object({
   "title": zod.string().min(getQuizSessionResponseQuizOneTitleMin),
@@ -848,7 +1157,10 @@ export const JoinQuizSessionResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })
 
 
@@ -898,7 +1210,10 @@ export const StartQuizSessionResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })),
   "quiz": zod.object({
   "title": zod.string().min(startQuizSessionResponseQuizOneTitleMin),
@@ -963,7 +1278,10 @@ export const AdvanceQuizSessionResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })),
   "quiz": zod.object({
   "title": zod.string().min(advanceQuizSessionResponseQuizOneTitleMin),
@@ -1006,7 +1324,10 @@ export const SubmitAnswerResponse = zod.object({
   "score": zod.number(),
   "percentage": zod.number().optional(),
   "locked": zod.boolean().optional(),
-  "muted": zod.boolean().optional()
+  "muted": zod.boolean().optional(),
+  "warningCount": zod.number().optional(),
+  "lockedUntil": zod.string().nullish(),
+  "mutedUntil": zod.string().nullish()
 })
 
 

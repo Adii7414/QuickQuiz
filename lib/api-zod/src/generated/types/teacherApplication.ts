@@ -14,4 +14,6 @@ export type TeacherApplication = TeacherApplicationInput & ({
   submittedAt: string;
   /** @nullable */
   reviewedAt?: string | null;
+  /** @nullable */
+  reviewNote?: string | null;
 });

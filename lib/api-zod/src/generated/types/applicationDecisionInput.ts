@@ -9,4 +9,6 @@ import type { ApplicationDecisionInputDecision } from './applicationDecisionInpu
 
 export interface ApplicationDecisionInput {
   decision: ApplicationDecisionInputDecision;
+  /** @maxLength 500 */
+  reviewNote?: string;
 }
